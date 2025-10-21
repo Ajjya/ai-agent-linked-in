@@ -1,0 +1,79 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  sourceUrl   String?  // Original MongoDB blog post URL
+  imageUrl    String?  // Featured image URL
+  sourceType  String   @default("rss") // "rss" | "manual"
+  
+  // Scheduling
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  status      String   @default("draft") // "draft" | "scheduled" | "published" | "failed"
+  
+  // LinkedIn specific
+  linkedinPostId String? // ID from LinkedIn after publishing
+  
+  // Metadata
+  tags        String?  // JSON array of tags
+  category    String?  // e.g., "tutorial", "news", "tips", "case-study"
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  publishLogs PublishLog[]
+  
+  @@map("posts")
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("settings")
+}
+
+model PublishLog {
+  id        String   @id @default(cuid())
+  postId    String?
+  status    String   // "success" | "error"
+  message   String?
+  error     String?
+  
+  createdAt DateTime @default(now())
+  
+  post      Post?    @relation(fields: [postId], references: [id])
+  
+  @@map("publish_logs")
+}
+
+model RssItem {
+  id          String   @id @default(cuid())
+  guid        String   @unique // RSS item GUID to prevent duplicates
+  title       String
+  link        String
+  description String
+  pubDate     DateTime
+  processed   Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("rss_items")
+}

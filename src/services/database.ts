@@ -1,0 +1,212 @@
+import { PrismaClient } from '@prisma/client';
+import config from '../config';
+
+class DatabaseService {
+  private prisma: PrismaClient;
+
+  constructor() {
+    this.prisma = new PrismaClient();
+  }
+
+  async connect(): Promise<void> {
+    try {
+      await this.prisma.$connect();
+      console.log('✅ Database connected successfully');
+    } catch (error) {
+      console.error('❌ Database connection failed:', error);
+      throw error;
+    }
+  }
+
+  async disconnect(): Promise<void> {
+    await this.prisma.$disconnect();
+    console.log('📋 Database disconnected');
+  }
+
+  // Post methods
+  async createPost(data: {
+    title: string;
+    content: string;
+    sourceUrl?: string;
+    imageUrl?: string;
+    sourceType?: string;
+    scheduledAt?: Date;
+    category?: string;
+    tags?: string[];
+  }): Promise<any> {
+    return this.prisma.post.create({
+      data: {
+        ...data,
+        tags: data.tags ? JSON.stringify(data.tags) : null,
+      },
+    });
+  }
+
+  async getPostById(id: string): Promise<any> {
+    return this.prisma.post.findUnique({
+      where: { id },
+      include: {
+        publishLogs: {
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+    });
+  }
+
+  async getScheduledPosts(): Promise<any[]> {
+    const now = new Date();
+    return this.prisma.post.findMany({
+      where: {
+        status: 'scheduled',
+        scheduledAt: {
+          lte: now,
+        },
+      },
+      orderBy: {
+        scheduledAt: 'asc',
+      },
+    });
+  }
+
+  async getPosts(limit = 50): Promise<any[]> {
+    return this.prisma.post.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: limit,
+      include: {
+        publishLogs: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+  }
+
+  async updatePostStatus(
+    id: string,
+    status: string,
+    linkedinPostId?: string,
+    publishedAt?: Date
+  ): Promise<any> {
+    const updateData: any = { status };
+    
+    if (linkedinPostId !== undefined) {
+      updateData.linkedinPostId = linkedinPostId;
+    }
+    
+    if (publishedAt !== undefined) {
+      updateData.publishedAt = publishedAt;
+    }
+
+    return this.prisma.post.update({
+      where: { id },
+      data: updateData,
+    });
+  }
+
+  // Settings methods
+  async getSetting(key: string): Promise<string | null> {
+    const setting = await this.prisma.setting.findUnique({
+      where: { key },
+    });
+    return setting?.value || null;
+  }
+
+  async setSetting(key: string, value: string): Promise<any> {
+    return this.prisma.setting.upsert({
+      where: { key },
+      update: { value },
+      create: { key, value },
+    });
+  }
+
+  // RSS items methods
+  async getRssItem(guid: string): Promise<any> {
+    return this.prisma.rssItem.findUnique({
+      where: { guid },
+    });
+  }
+
+  async createRssItem(data: {
+    guid: string;
+    title: string;
+    link: string;
+    description: string;
+    pubDate: Date;
+  }): Promise<any> {
+    return this.prisma.rssItem.create({
+      data,
+    });
+  }
+
+  async markRssItemProcessed(guid: string): Promise<any> {
+    return this.prisma.rssItem.update({
+      where: { guid },
+      data: { processed: true },
+    });
+  }
+
+  async getUnprocessedRssItems(): Promise<any[]> {
+    return this.prisma.rssItem.findMany({
+      where: { processed: false },
+      orderBy: { pubDate: 'desc' },
+    });
+  }
+
+  // Publish logs methods
+  async createPublishLog(data: {
+    postId?: string;
+    status: string;
+    message?: string;
+    error?: string;
+  }): Promise<any> {
+    return this.prisma.publishLog.create({
+      data,
+    });
+  }
+
+  async getRecentPublishLogs(limit = 100): Promise<any[]> {
+    return this.prisma.publishLog.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        post: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Utility methods
+  async getStats(): Promise<{
+    totalPosts: number;
+    publishedPosts: number;
+    scheduledPosts: number;
+    draftPosts: number;
+  }> {
+    const [totalPosts, publishedPosts, scheduledPosts, draftPosts] = await Promise.all([
+      this.prisma.post.count(),
+      this.prisma.post.count({ where: { status: 'published' } }),
+      this.prisma.post.count({ where: { status: 'scheduled' } }),
+      this.prisma.post.count({ where: { status: 'draft' } }),
+    ]);
+
+    return {
+      totalPosts,
+      publishedPosts,
+      scheduledPosts,
+      draftPosts,
+    };
+  }
+
+  // Get Prisma client for advanced queries
+  getClient(): PrismaClient {
+    return this.prisma;
+  }
+}
+
+export default new DatabaseService();

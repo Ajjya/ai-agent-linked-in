@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - LinkedIn MongoDB Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0077b5, #00a0dc);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+        
+        .header h1 {
+            text-align: center;
+            font-size: 28px;
+        }
+        
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .nav a {
+            background: white;
+            color: #0077b5;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 25px;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: #0077b5;
+            color: white;
+        }
+        
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .section h2 {
+            color: #0077b5;
+            margin-bottom: 20px;
+        }
+        
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .config-label {
+            font-weight: 500;
+        }
+        
+        .config-value {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: #495057;
+        }
+        
+        .status-good {
+            color: #28a745;
+        }
+        
+        .status-warning {
+            color: #ffc107;
+        }
+        
+        .status-error {
+            color: #dc3545;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #0077b5;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            color: #856404;
+        }
+        
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: monospace;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Settings & Configuration</h1>
+        </div>
+
+        <div class="nav">
+            <a href="/">Dashboard</a>
+            <a href="/posts">Posts</a>
+            <a href="/schedule">Schedule</a>
+            <a href="/settings" class="active">Settings</a>
+        </div>
+
+        <div class="section">
+            <h2>Current Configuration</h2>
+            
+            <div class="config-item">
+                <div class="config-label">Environment</div>
+                <div class="config-value" id="nodeEnv">-</div>
+            </div>
+            
+            <div class="config-item">
+                <div class="config-label">Posting Days</div>
+                <div class="config-value" id="postingDays">-</div>
+            </div>
+            
+            <div class="config-item">
+                <div class="config-label">Posting Time</div>
+                <div class="config-value" id="postingTime">-</div>
+            </div>
+            
+            <div class="config-item">
+                <div class="config-label">Timezone</div>
+                <div class="config-value" id="timezone">-</div>
+            </div>
+            
+            <div class="config-item">
+                <div class="config-label">LinkedIn Connection</div>
+                <div class="config-value" id="linkedinStatus">
+                    <span class="status-warning">Testing...</span>
+                </div>
+            </div>
+            
+            <div class="config-item">
+                <div class="config-label">RSS Feed URL</div>
+                <div class="config-value" id="rssUrl">-</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>LinkedIn API Setup</h2>
+            
+            <div class="info-box">
+                <strong>📋 LinkedIn Developer Setup Instructions:</strong><br>
+                Follow these steps to set up your LinkedIn API access.
+            </div>
+            
+            <ol style="line-height: 2; margin-left: 20px;">
+                <li><strong>Create LinkedIn Developer Account:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Go to <a href="https://www.linkedin.com/developers/" target="_blank">LinkedIn Developers</a></li>
+                        <li>Sign in with your LinkedIn account</li>
+                        <li>Click "Create App"</li>
+                    </ul>
+                </li>
+                
+                <li style="margin-top: 15px;"><strong>Configure Your App:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>App name: "MongoDB Content Agent" (or your preference)</li>
+                        <li>LinkedIn Page: Select your personal profile or company page</li>
+                        <li>Privacy policy URL: Add a simple privacy policy</li>
+                        <li>App logo: Upload a logo (optional)</li>
+                    </ul>
+                </li>
+                
+                <li style="margin-top: 15px;"><strong>Request API Access:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Go to the "Products" tab</li>
+                        <li>Request access to "Share on LinkedIn" and "Sign In with LinkedIn"</li>
+                        <li>Fill out the use case form explaining automated content sharing</li>
+                    </ul>
+                </li>
+                
+                <li style="margin-top: 15px;"><strong>Get Your Credentials:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Go to the "Auth" tab</li>
+                        <li>Copy your Client ID and Client Secret</li>
+                        <li>Add redirect URL: <code>http://localhost:3000/auth/linkedin/callback</code></li>
+                    </ul>
+                </li>
+            </ol>
+            
+            <div class="warning-box">
+                <strong>⚠️ Important:</strong> LinkedIn API access requires approval and may take several days. During development, you can test with your personal account.
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Environment Variables Setup</h2>
+            
+            <p>Update your <code>.env</code> file with the following configuration:</p>
+            
+            <div class="code-block">
+# LinkedIn API credentials<br>
+LINKEDIN_CLIENT_ID=your_client_id_here<br>
+LINKEDIN_CLIENT_SECRET=your_client_secret_here<br>
+LINKEDIN_ACCESS_TOKEN=your_access_token_here<br>
+<br>
+# Posting schedule (0=Sunday, 1=Monday, ..., 6=Saturday)<br>
+POSTING_DAYS=2,5  # Tuesday and Friday<br>
+POSTING_TIME=10:30  # 10:30 AM<br>
+TIMEZONE=Europe/Lisbon<br>
+<br>
+# LinkedIn profile settings<br>
+LINKEDIN_PROFILE_ID=your_profile_id<br>
+LINKEDIN_COMPANY_ID=mongodbinc
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>OAuth Flow</h2>
+            
+            <p>To get your access token, you'll need to complete the OAuth flow:</p>
+            
+            <ol style="line-height: 2; margin-left: 20px; margin-top: 15px;">
+                <li>Make sure your LinkedIn app is configured with the correct redirect URL</li>
+                <li>Visit the authorization URL (will be provided in future updates)</li>
+                <li>Grant permission to your LinkedIn app</li>
+                <li>Copy the access token to your .env file</li>
+            </ol>
+            
+            <div class="info-box">
+                <strong>💡 Tip:</strong> Once you have valid credentials, the system will automatically handle posting to your LinkedIn profile or company page (when you get admin access).
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Deployment on Digital Ocean</h2>
+            
+            <p>When you're ready to deploy to Digital Ocean:</p>
+            
+            <ol style="line-height: 2; margin-left: 20px; margin-top: 15px;">
+                <li>Create a Digital Ocean Droplet (Ubuntu recommended)</li>
+                <li>Install Docker and Docker Compose</li>
+                <li>Clone your GitHub repository</li>
+                <li>Set up environment variables on the server</li>
+                <li>Use the included Docker configuration to deploy</li>
+            </ol>
+            
+            <div class="info-box">
+                <strong>🚀 Coming Soon:</strong> Automated deployment with GitHub Actions will be set up to make deployment even easier.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadSettings() {
+            try {
+                // Load system status for configuration display
+                const response = await fetch('/api/system/status');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        displayConfiguration();
+                    }
+                }
+                
+                // Test LinkedIn connection
+                testLinkedInConnection();
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
+
+        function displayConfiguration() {
+            // These would typically come from an API endpoint
+            // For now, display static information
+            document.getElementById('nodeEnv').textContent = 'development';
+            document.getElementById('postingDays').textContent = 'Tuesday, Friday';
+            document.getElementById('postingTime').textContent = '10:30 AM';
+            document.getElementById('timezone').textContent = 'Europe/Lisbon';
+            document.getElementById('rssUrl').textContent = 'https://www.mongodb.com/blog/rss.xml';
+        }
+
+        async function testLinkedInConnection() {
+            try {
+                const response = await fetch('/api/system/linkedin/test');
+                const data = await response.json();
+                
+                const statusElement = document.getElementById('linkedinStatus');
+                
+                if (data.success && data.data) {
+                    statusElement.innerHTML = `<span class="status-good">✅ Connected as ${data.data.localizedFirstName} ${data.data.localizedLastName}</span>`;
+                } else {
+                    statusElement.innerHTML = `<span class="status-error">❌ Not connected${data.error ? ': ' + data.error : ''}</span>`;
+                }
+            } catch (error) {
+                document.getElementById('linkedinStatus').innerHTML = 
+                    '<span class="status-error">❌ Connection test failed</span>';
+            }
+        }
+
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', loadSettings);
+    </script>
+</body>
+</html>
