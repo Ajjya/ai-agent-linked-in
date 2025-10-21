@@ -43,4 +43,6 @@ tmp/
 temp/
 
 # Prisma
-prisma/migrations/
+prisma/migration
+
+PROJECT_SUMMARY.md
