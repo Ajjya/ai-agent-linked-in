@@ -2,10 +2,14 @@
 
 Automated LinkedIn posting agent that publishes MongoDB-related content to your LinkedIn profile twice a week. This application fetches content from MongoDB's RSS feed, creates engaging LinkedIn posts, and publishes them on a configurable schedule.
 
+[![CI/CD Pipeline](https://github.com/Ajjya/ai-agent-linked-in/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Ajjya/ai-agent-linked-in/actions/workflows/ci-cd.yml)
 ![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)
 ![LinkedIn API](https://img.shields.io/badge/LinkedIn-API-0077B5.svg)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Content-47A248.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub issues](https://img.shields.io/github/issues/Ajjya/ai-agent-linked-in)](https://github.com/Ajjya/ai-agent-linked-in/issues)
+[![GitHub stars](https://img.shields.io/github/stars/Ajjya/ai-agent-linked-in)](https://github.com/Ajjya/ai-agent-linked-in/stargazers)
 
 ## ✨ Features
 
