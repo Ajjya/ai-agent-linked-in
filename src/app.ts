@@ -10,6 +10,7 @@ import schedulerService from './services/scheduler';
 import postsRouter from './routes/posts';
 import systemRouter from './routes/system';
 import dashboardRouter from './routes/dashboard';
+import authRouter from './routes/auth';
 
 class App {
   public app: express.Application;
@@ -48,6 +49,7 @@ class App {
     this.app.use('/api/posts', postsRouter);
     this.app.use('/api/system', systemRouter);
     this.app.use('/api/dashboard', dashboardRouter);
+    this.app.use('/auth', authRouter);
 
     // Web panel routes
     this.app.get('/', (req, res) => {

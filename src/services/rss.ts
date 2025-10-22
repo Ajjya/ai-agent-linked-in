@@ -29,13 +29,46 @@ class RSSContentService {
           ['content:encoded', 'content'],
         ],
       },
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; RSS-Reader/1.0)',
+      },
     });
   }
 
   async fetchAndProcessRSS(): Promise<void> {
     try {
       console.log('📡 Fetching MongoDB RSS feed...');
-      const feed = await this.parser.parseURL(config.content.mongodbRssUrl);
+      
+      // Try alternative RSS feeds if main one fails
+      const rssUrls = [
+        config.content.mongodbRssUrl,
+        ...config.content.fallbackRssUrls,
+      ];
+
+      let feed: any = null;
+      let lastError: Error | null = null;
+
+      for (const url of rssUrls) {
+        try {
+          console.log(`🔗 Trying RSS URL: ${url}`);
+          feed = await this.parser.parseURL(url);
+          console.log(`✅ Successfully parsed RSS from: ${url}`);
+          break;
+        } catch (error: any) {
+          console.log(`⚠️ Failed to parse RSS from ${url}:`, error.message);
+          lastError = error;
+          continue;
+        }
+      }
+
+      if (!feed) {
+        console.error('❌ Failed to fetch RSS from all sources');
+        if (lastError) {
+          throw lastError;
+        }
+        throw new Error('Unable to fetch RSS feed from any source');
+      }
 
       console.log(`📰 Found ${feed.items?.length || 0} items in RSS feed`);
 
@@ -51,7 +84,8 @@ class RSSContentService {
       console.log('✅ RSS processing completed');
     } catch (error) {
       console.error('❌ Error processing RSS feed:', error);
-      throw error;
+      // Don't throw the error, just log it to prevent app crash
+      console.log('🔄 RSS processing will be retried on next scheduled run');
     }
   }
 
@@ -128,23 +162,28 @@ class RSSContentService {
   private generatePostContent(item: RSSItem): string {
     const title = item.title || 'MongoDB Update';
     const description = this.cleanDescription(item.contentSnippet || item.content || '');
-    const link = item.link;
+    const category = this.categorizePost(item);
+    
+    return this.createEngagingPost(title, description, item.link || '', category);
+  }
 
-    // Create engaging LinkedIn post
-    let content = `🍃 ${title}\n\n`;
-
-    if (description) {
-      // Limit description to ~200 characters for LinkedIn
-      const shortDescription = description.length > 200 
-        ? description.substring(0, 200) + '...'
-        : description;
-      
-      content += `${shortDescription}\n\n`;
+  private createEngagingPost(title: string, description: string, link: string, category: string): string {
+    const templates = this.getPostTemplates();
+    const template = templates[category] || templates.general;
+    
+    if (!template) {
+      throw new Error('No template found for category: ' + category);
     }
-
-    content += `💡 Key insights for MongoDB developers and data architects.\n\n`;
-    content += `🔗 Read more: ${link}\n\n`;
-    content += `#MongoDB #Database #NoSQL #DataManagement #TechTips`;
+    
+    // Extract key points from description
+    const keyPoints = this.extractKeyPoints(description);
+    const hashtags = this.generateHashtags(title, category);
+    
+    let content = template
+      .replace('{title}', title)
+      .replace('{keyPoints}', keyPoints)
+      .replace('{link}', link)
+      .replace('{hashtags}', hashtags);
 
     // Ensure content doesn't exceed LinkedIn's character limit
     if (content.length > config.posting.maxPostLength) {
@@ -154,13 +193,110 @@ class RSSContentService {
     return content;
   }
 
-  private cleanDescription(description: string): string {
-    // Remove HTML tags and clean up description
-    return description
-      .replace(/<[^>]*>/g, '') // Remove HTML tags
-      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .replace(/&[a-zA-Z]+;/g, '') // Remove HTML entities
+  private getPostTemplates(): Record<string, string> {
+    return {
+      tutorial: `🎯 {title}
+
+{keyPoints}
+
+🔗 Read more: {link}
+
+{hashtags}`,
+
+      case_study: `📊 {title}
+
+{keyPoints}
+
+🔗 Full case study: {link}
+
+{hashtags}`,
+
+      announcement: `🎉 {title}
+
+{keyPoints}
+
+🔗 Learn more: {link}
+
+{hashtags}`,
+
+      general: `🍃 {title}
+
+{keyPoints}
+
+🔗 Read article: {link}
+
+{hashtags}`
+    };
+  }
+
+  private extractKeyPoints(description: string): string {
+    if (!description || description.length < 50) {
+      return 'Discover new MongoDB features and best practices that can improve your development workflow and database performance.';
+    }
+
+    // Take meaningful content and make it longer
+    const paragraphs = description.split('\n').filter(p => p.trim().length > 20);
+    let mainContent = paragraphs.slice(0, 2).join(' ').trim() || description;
+
+    // Clean up but keep more content
+    mainContent = mainContent
+      .replace(/^(The post|Continue reading|Learn more).*$/gm, '') // Remove footers
+      .replace(/\s+/g, ' ') // Clean whitespace
       .trim();
+
+    // Expand content to be more descriptive (aim for 300-500 chars)
+    if (mainContent.length < 200) {
+      // Try to get more content from the description
+      const allText = description.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+      if (allText.length > mainContent.length) {
+        mainContent = allText.substring(0, 400).trim();
+      }
+    }
+
+    // If still too long, trim properly without cutting words
+    if (mainContent.length > 500) {
+      const trimmed = mainContent.substring(0, 480);
+      const lastSpace = trimmed.lastIndexOf(' ');
+      mainContent = trimmed.substring(0, lastSpace) + '...';
+    }
+
+    return mainContent;
+  }
+
+  private cleanDescription(description: string): string {
+    if (!description) return '';
+
+    // Remove HTML tags and clean up description
+    let cleaned = description
+      .replace(/<[^>]*>/g, '') // Remove HTML tags
+      .replace(/&nbsp;/g, ' ') // Replace &nbsp; with spaces
+      .replace(/&amp;/g, '&') // Replace &amp; with &
+      .replace(/&lt;/g, '<') // Replace &lt; with <
+      .replace(/&gt;/g, '>') // Replace &gt; with >
+      .replace(/&quot;/g, '"') // Replace &quot; with "
+      .replace(/&#x27;/g, "'") // Replace &#x27; with '
+      .replace(/&[a-zA-Z0-9#]+;/g, '') // Remove other HTML entities
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/^\s*The post.*first appeared on.*$/gm, '') // Remove footer text
+      .replace(/^\s*Continue reading.*$/gm, '') // Remove "Continue reading" text
+      .trim();
+
+    // Remove common unwanted phrases
+    const unwantedPhrases = [
+      'The post',
+      'first appeared on',
+      'Continue reading',
+      'Read more',
+      'Learn more',
+      'Click here'
+    ];
+
+    unwantedPhrases.forEach(phrase => {
+      const regex = new RegExp(phrase, 'gi');
+      cleaned = cleaned.replace(regex, '');
+    });
+
+    return cleaned.trim();
   }
 
   private extractImageUrl(item: RSSItem): string | undefined {
@@ -185,24 +321,31 @@ class RSSContentService {
     const content = (item.contentSnippet || item.content || '').toLowerCase();
     const categories = (item.categories || []).map(cat => cat.toLowerCase());
 
-    // Categorization rules
-    if (categories.includes('tutorial') || title.includes('tutorial') || title.includes('how to')) {
+    // Tutorial patterns
+    const tutorialKeywords = ['tutorial', 'how to', 'guide', 'step by step', 'getting started', 'learn', 'master'];
+    if (tutorialKeywords.some(keyword => title.includes(keyword) || content.includes(keyword))) {
       return 'tutorial';
     }
 
-    if (categories.includes('announcement') || title.includes('announcement') || title.includes('release')) {
-      return 'news';
+    // Case study patterns
+    const caseStudyKeywords = ['case study', 'success story', 'customer story', 'real world', 'implementation', 'deployment'];
+    if (caseStudyKeywords.some(keyword => title.includes(keyword) || content.includes(keyword))) {
+      return 'case_study';
     }
 
-    if (title.includes('tip') || title.includes('best practice') || content.includes('tip')) {
-      return 'tips';
+    // Announcement patterns
+    const announcementKeywords = ['announcement', 'release', 'new', 'introducing', 'launched', 'available', 'update'];
+    if (announcementKeywords.some(keyword => title.includes(keyword) || content.includes(keyword))) {
+      return 'announcement';
     }
 
-    if (title.includes('case study') || content.includes('case study') || categories.includes('case-study')) {
-      return 'case-study';
+    // Tips patterns
+    const tipsKeywords = ['tip', 'best practice', 'optimization', 'performance', 'trick', 'advice'];
+    if (tipsKeywords.some(keyword => title.includes(keyword) || content.includes(keyword))) {
+      return 'tutorial';
     }
 
-    return 'news'; // Default category
+    return 'general'; // Default category
   }
 
   private calculateScheduledDate(pubDate: Date): Date {
@@ -230,53 +373,65 @@ class RSSContentService {
     scheduledDate.setDate(now.getDate() + daysUntilNext);
     scheduledDate.setHours(hour, minute, 0, 0);
 
-    // If it's today and time has passed, schedule for next posting day
-    if (daysUntilNext === 0 && now.getHours() > hour) {
-      for (let i = 1; i < 7; i++) {
-        const checkDay = (today + i) % 7;
-        if (postingDays.includes(checkDay)) {
-          scheduledDate.setDate(now.getDate() + i);
-          break;
-        }
-      }
-    }
-
     return scheduledDate;
   }
 
-  async getUnprocessedContent(): Promise<any[]> {
-    return databaseService.getUnprocessedRssItems();
+  private generateHashtags(title: string, category: string): string {
+    const baseHashtags = ['#MongoDB', '#Database', '#NoSQL'];
+    const categoryHashtags: Record<string, string[]> = {
+      tutorial: ['#Tutorial', '#Learning', '#Development', '#Programming'],
+      case_study: ['#CaseStudy', '#Success', '#Enterprise', '#Scale'],
+      announcement: ['#News', '#Update', '#Innovation', '#Technology'],
+      general: ['#DataManagement', '#TechTips', '#Development']
+    };
+
+    const titleHashtags = this.extractHashtagsFromTitle(title);
+    const selected = [
+      ...baseHashtags,
+      ...(categoryHashtags[category] || categoryHashtags.general || []).slice(0, 2),
+      ...titleHashtags.slice(0, 2)
+    ];
+
+    return [...new Set(selected)].join(' ');
+  }
+
+  private extractHashtagsFromTitle(title: string): string[] {
+    const hashtags: string[] = [];
+    const titleLower = title.toLowerCase();
+
+    const keywordMap: Record<string, string> = {
+      'atlas': '#Atlas',
+      'search': '#Search',
+      'ai': '#AI',
+      'vector': '#VectorSearch',
+      'performance': '#Performance',
+      'security': '#Security',
+      'cloud': '#Cloud',
+      'analytics': '#Analytics',
+      'aggregation': '#Aggregation',
+      'compass': '#Compass',
+      'optimization': '#Optimization'
+    };
+
+    for (const [keyword, hashtag] of Object.entries(keywordMap)) {
+      if (titleLower.includes(keyword)) {
+        hashtags.push(hashtag);
+      }
+    }
+
+    return hashtags;
   }
 
   async generateContentSummary(): Promise<{
     totalItems: number;
     recentItems: number;
-    unprocessedItems: number;
+    categories: Record<string, number>;
   }> {
-    const client = databaseService.getClient();
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    const [totalItems, recentItems, unprocessedItems] = await Promise.all([
-      client.rssItem.count(),
-      client.rssItem.count({
-        where: {
-          pubDate: {
-            gte: sevenDaysAgo,
-          },
-        },
-      }),
-      client.rssItem.count({
-        where: {
-          processed: false,
-        },
-      }),
-    ]);
-
+    // This would return stats about processed RSS content
     return {
-      totalItems,
-      recentItems,
-      unprocessedItems,
+      totalItems: 0,
+      recentItems: 0,
+      categories: {}
     };
   }
 }

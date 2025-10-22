@@ -181,4 +181,29 @@ router.get('/scheduled/upcoming', async (req, res) => {
   }
 });
 
+// Clear all posts and RSS items (for testing)
+router.delete('/clear-all', async (req, res) => {
+  try {
+    const client = databaseService.getClient();
+    
+    // Delete in the correct order due to foreign key constraints
+    await client.publishLog.deleteMany({});
+    await client.post.deleteMany({});
+    await client.rssItem.deleteMany({});
+    
+    console.log('🗑️ All posts and RSS items cleared');
+    
+    res.json({
+      success: true,
+      message: 'All posts and RSS items have been cleared',
+    });
+  } catch (error) {
+    console.error('Error clearing all posts:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear posts',
+    });
+  }
+});
+
 export default router;

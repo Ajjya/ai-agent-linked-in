@@ -114,6 +114,27 @@
             border-radius: 4px;
         }
         
+        .oauth-btn {
+            background: #0077b5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .oauth-btn:hover {
+            background: #005885;
+        }
+        
+        .oauth-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
         .warning-box {
             background: #fff3cd;
             border-left: 4px solid #ffc107;
@@ -184,11 +205,37 @@
         </div>
 
         <div class="section">
-            <h2>LinkedIn API Setup</h2>
+            <h2>🔗 LinkedIn OAuth Setup</h2>
             
             <div class="info-box">
-                <strong>📋 LinkedIn Developer Setup Instructions:</strong><br>
-                Follow these steps to set up your LinkedIn API access.
+                <strong>⚠️ Setup Required:</strong><br>
+                You need to configure LinkedIn API credentials before using the agent.
+            </div>
+            
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h3>Step 1: Get LinkedIn App Credentials</h3>
+                <ol style="margin-left: 20px;">
+                    <li>Visit <a href="https://www.linkedin.com/developers/" target="_blank">LinkedIn Developer Portal</a></li>
+                    <li>Create a new app with these settings:
+                        <ul style="margin: 10px 0 10px 20px;">
+                            <li><strong>Redirect URI:</strong> <code>http://localhost:3000/auth/linkedin/callback</code></li>
+                            <li><strong>Products:</strong> Sign In with LinkedIn, Share on LinkedIn</li>
+                        </ul>
+                    </li>
+                    <li>Copy your <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+                    <li>Add them to your <code>.env</code> file</li>
+                </ol>
+            </div>
+            
+            <div style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 15px 0;">
+                <h3>Step 2: Authorize Access</h3>
+                <p>After updating your .env file, restart the app and click the button below:</p>
+                <button onclick="startLinkedInAuth()" class="oauth-btn">
+                    🔐 Authorize LinkedIn Access
+                </button>
+                <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                    This will redirect you to LinkedIn to grant permissions.
+                </p>
             </div>
             
             <ol style="line-height: 2; margin-left: 20px;">
@@ -254,19 +301,31 @@ LINKEDIN_COMPANY_ID=mongodbinc
         </div>
 
         <div class="section">
-            <h2>OAuth Flow</h2>
-            
-            <p>To get your access token, you'll need to complete the OAuth flow:</p>
-            
-            <ol style="line-height: 2; margin-left: 20px; margin-top: 15px;">
-                <li>Make sure your LinkedIn app is configured with the correct redirect URL</li>
-                <li>Visit the authorization URL (will be provided in future updates)</li>
-                <li>Grant permission to your LinkedIn app</li>
-                <li>Copy the access token to your .env file</li>
-            </ol>
+            <h2>🔐 Get LinkedIn Access Token</h2>
             
             <div class="info-box">
-                <strong>💡 Tip:</strong> Once you have valid credentials, the system will automatically handle posting to your LinkedIn profile or company page (when you get admin access).
+                <strong>✨ Automated OAuth Flow Available!</strong><br>
+                Use the button below to get your LinkedIn access token automatically.
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="btn" onclick="startLinkedInAuth()" style="background: #0077b5; color: white; font-size: 16px; padding: 15px 30px;">
+                    🔗 Get LinkedIn Access Token
+                </button>
+            </div>
+            
+            <h3>Manual OAuth Steps:</h3>
+            <ol style="line-height: 2; margin-left: 20px; margin-top: 15px;">
+                <li>Ensure your LinkedIn app redirect URL is: <code>http://localhost:3000/auth/linkedin/callback</code></li>
+                <li>Click the button above to start OAuth flow</li>
+                <li>Authorize the application on LinkedIn</li>
+                <li>Copy the access token from the success page</li>
+                <li>Update your <code>.env</code> file with the token</li>
+                <li>Restart the application</li>
+            </ol>
+            
+            <div class="warning-box">
+                <strong>⚠️ Important:</strong> Access tokens expire after a certain time. You may need to refresh them periodically.
             </div>
         </div>
 
@@ -333,6 +392,24 @@ LINKEDIN_COMPANY_ID=mongodbinc
             } catch (error) {
                 document.getElementById('linkedinStatus').innerHTML = 
                     '<span class="status-error">❌ Connection test failed</span>';
+            }
+        }
+
+        async function startLinkedInAuth() {
+            try {
+                const response = await fetch('/auth/linkedin/auth');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Open LinkedIn authorization in new window
+                    window.open(data.authUrl, '_blank', 'width=600,height=700');
+                    alert('LinkedIn authorization opened in new window. Please complete the authorization and copy the access token.');
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error starting LinkedIn auth:', error);
+                alert('Failed to start LinkedIn authorization');
             }
         }
 

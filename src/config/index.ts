@@ -32,6 +32,7 @@ interface AppConfig {
   // Content sources
   content: {
     mongodbRssUrl: string;
+    fallbackRssUrls: string[];
   };
 
   // Database
@@ -81,6 +82,10 @@ const config: AppConfig = {
 
   content: {
     mongodbRssUrl: process.env.MONGODB_RSS_URL || 'https://www.mongodb.com/blog/rss.xml',
+    fallbackRssUrls: [
+      'https://feeds.feedburner.com/MongoDBBlog',
+      'https://www.mongodb.com/feeds/blog',
+    ],
   },
 
   database: {

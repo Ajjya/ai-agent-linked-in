@@ -66,8 +66,8 @@ class LinkedInService {
 
   async validateConnection(): Promise<boolean> {
     try {
-      if (!this.accessToken) {
-        console.log('⚠️ LinkedIn access token not provided');
+      if (!this.accessToken || this.accessToken.trim() === '') {
+        console.log('⚠️ LinkedIn access token not provided or empty');
         return false;
       }
 
@@ -81,6 +81,10 @@ class LinkedInService {
   }
 
   async getProfile(): Promise<LinkedInProfile> {
+    if (!this.accessToken || this.accessToken.trim() === '') {
+      throw new Error('LinkedIn access token is required');
+    }
+
     try {
       const response = await this.api.get('/people/~:(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))');
       return response.data;

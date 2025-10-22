@@ -2,6 +2,7 @@ import { Router } from 'express';
 import schedulerService from '../services/scheduler';
 import rssService from '../services/rss';
 import linkedinService from '../services/linkedin';
+import config from '../config';
 
 const router = Router();
 
@@ -23,6 +24,33 @@ router.get('/status', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get scheduler status',
+    });
+  }
+});
+
+// Debug config endpoint
+router.get('/debug/config', (req, res) => {
+  try {
+    res.json({
+      success: true,
+      data: {
+        nodeEnv: config.nodeEnv,
+        linkedin: {
+          clientId: config.linkedin.clientId ? `${config.linkedin.clientId.substring(0, 5)}...` : 'empty',
+          clientSecret: config.linkedin.clientSecret ? 'set' : 'empty',
+          redirectUri: config.linkedin.redirectUri,
+          accessToken: config.linkedin.accessToken ? 'set' : 'empty',
+        },
+        envVars: {
+          LINKEDIN_CLIENT_ID: process.env.LINKEDIN_CLIENT_ID ? `${process.env.LINKEDIN_CLIENT_ID.substring(0, 5)}...` : 'empty',
+          LINKEDIN_CLIENT_SECRET: process.env.LINKEDIN_CLIENT_SECRET ? 'set' : 'empty',
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get debug config',
     });
   }
 });
