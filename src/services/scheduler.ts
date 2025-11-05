@@ -20,6 +20,9 @@ class SchedulerService {
     // Setup cleanup tasks - daily at midnight
     this.setupCleanupTasks();
 
+    // Setup token refresh - check every 30 minutes
+    this.setupTokenRefresh();
+
     this.isRunning = true;
     console.log('✅ Scheduler service initialized');
   }
@@ -89,6 +92,28 @@ class SchedulerService {
 
     this.cronJobs.set('cleanup', cleanupJob);
     console.log('✅ Cleanup tasks scheduled (daily at midnight)');
+  }
+
+  private setupTokenRefresh(): void {
+    // Check and refresh LinkedIn token every 30 minutes
+    const tokenRefreshJob = cron.schedule('*/30 * * * *', async () => {
+      try {
+        console.log('🔐 Checking LinkedIn token expiration...');
+        await linkedinService.checkAndRefreshToken();
+      } catch (error) {
+        console.error('❌ Error checking/refreshing LinkedIn token:', error);
+        await databaseService.createPublishLog({
+          status: 'error',
+          message: 'Token refresh failed',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }, {
+      timezone: config.posting.timezone,
+    });
+
+    this.cronJobs.set('token-refresh', tokenRefreshJob);
+    console.log('✅ Token refresh scheduled (every 30 minutes)');
   }
 
   async processScheduledPosts(): Promise<void> {

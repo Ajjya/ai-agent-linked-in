@@ -203,6 +203,79 @@ class DatabaseService {
     };
   }
 
+  // LinkedIn Token methods
+  async storeLinkedInToken(data: {
+    accessToken: string;
+    refreshToken?: string;
+    expiresAt: Date;
+    scope?: string;
+  }): Promise<any> {
+    // Delete existing tokens first
+    await this.prisma.linkedInToken.deleteMany({});
+    
+    return this.prisma.linkedInToken.create({
+      data: {
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken || null,
+        expiresAt: data.expiresAt,
+        scope: data.scope || null,
+      },
+    });
+  }
+
+  async getValidLinkedInToken(): Promise<{
+    accessToken: string;
+    refreshToken: string | undefined;
+    expiresAt: Date;
+    scope: string | undefined;
+  } | null> {
+    const token = await this.prisma.linkedInToken.findFirst({
+      where: {
+        expiresAt: {
+          gt: new Date(), // Token hasn't expired yet
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!token) {
+      return null;
+    }
+
+    return {
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken ? token.refreshToken : undefined,
+      expiresAt: token.expiresAt,
+      scope: token.scope ? token.scope : undefined,
+    };
+  }
+
+  async getLatestLinkedInToken(): Promise<{
+    accessToken: string;
+    refreshToken: string | undefined;
+    expiresAt: Date;
+    scope: string | undefined;
+  } | null> {
+    const token = await this.prisma.linkedInToken.findFirst({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    if (!token) {
+      return null;
+    }
+
+    return {
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken ? token.refreshToken : undefined,
+      expiresAt: token.expiresAt,
+      scope: token.scope ? token.scope : undefined,
+    };
+  }
+
   // Get Prisma client for advanced queries
   getClient(): PrismaClient {
     return this.prisma;

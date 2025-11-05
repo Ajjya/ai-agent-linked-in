@@ -3,18 +3,17 @@ import config from '../config';
 import databaseService from './database';
 
 interface LinkedInProfile {
-  id: string;
-  localizedFirstName: string;
-  localizedLastName: string;
-  profilePicture?: {
-    'displayImage~': {
-      elements: Array<{
-        identifiers: Array<{
-          identifier: string;
-        }>;
-      }>;
-    };
-  };
+  sub: string; // User ID
+  name: string; // Full name
+  given_name: string; // First name
+  family_name: string; // Last name
+  email: string;
+  picture?: string; // Profile picture URL
+  
+  // For backward compatibility
+  id?: string;
+  localizedFirstName?: string;
+  localizedLastName?: string;
 }
 
 interface LinkedInPostResponse {
@@ -50,6 +49,7 @@ interface LinkedInShareContent {
 
 class LinkedInService {
   private api: AxiosInstance;
+  private oidcApi: AxiosInstance;
   private accessToken: string;
 
   constructor() {
@@ -62,6 +62,37 @@ class LinkedInService {
         'X-Restli-Protocol-Version': '2.0.0',
       },
     });
+    
+    // Separate API for OpenID Connect endpoints
+    this.oidcApi = axios.create({
+      baseURL: 'https://api.linkedin.com/v2',
+      headers: {
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
+  // Initialize token from database
+  async initializeToken(): Promise<void> {
+    try {
+      const tokenData = await databaseService.getValidLinkedInToken();
+      if (tokenData) {
+        this.accessToken = tokenData.accessToken;
+        this.updateApiHeaders();
+        console.log('✅ LinkedIn token loaded from database');
+      } else {
+        console.log('⚠️ No valid LinkedIn token found in database');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing LinkedIn token:', error);
+    }
+  }
+
+  // Update API headers with new token
+  private updateApiHeaders(): void {
+    this.api.defaults.headers['Authorization'] = `Bearer ${this.accessToken}`;
+    this.oidcApi.defaults.headers['Authorization'] = `Bearer ${this.accessToken}`;
   }
 
   async validateConnection(): Promise<boolean> {
@@ -72,7 +103,7 @@ class LinkedInService {
       }
 
       const profile = await this.getProfile();
-      console.log(`✅ LinkedIn connection validated for: ${profile.localizedFirstName} ${profile.localizedLastName}`);
+      console.log(`✅ LinkedIn connection validated for: ${profile.given_name} ${profile.family_name}`);
       return true;
     } catch (error) {
       console.error('❌ LinkedIn connection validation failed:', error);
@@ -86,8 +117,15 @@ class LinkedInService {
     }
 
     try {
-      const response = await this.api.get('/people/~:(id,localizedFirstName,localizedLastName,profilePicture(displayImage~:playableStreams))');
-      return response.data;
+      const response = await this.oidcApi.get('/userinfo');
+      const profile = response.data;
+      
+      // Add backward compatibility fields
+      profile.id = profile.sub;
+      profile.localizedFirstName = profile.given_name;
+      profile.localizedLastName = profile.family_name;
+      
+      return profile;
     } catch (error) {
       console.error('❌ Error fetching LinkedIn profile:', error);
       throw new Error('Failed to fetch LinkedIn profile');
@@ -104,7 +142,7 @@ class LinkedInService {
       console.log(`📤 Publishing LinkedIn post: ${postData.title}`);
 
       const profile = await this.getProfile();
-      const authorUrn = `urn:li:person:${profile.id}`;
+      const authorUrn = `urn:li:person:${profile.sub}`;
 
       let shareContent: LinkedInShareContent = {
         author: authorUrn,
@@ -243,7 +281,7 @@ class LinkedInService {
       response_type: 'code',
       client_id: config.linkedin.clientId,
       redirect_uri: config.linkedin.redirectUri,
-      scope: 'r_liteprofile,r_emailaddress,w_member_social',
+      scope: 'r_basicprofile w_member_social',
       state: 'linkedin_oauth_' + Date.now(),
     });
 
@@ -253,6 +291,7 @@ class LinkedInService {
   async exchangeCodeForToken(code: string): Promise<{
     access_token: string;
     expires_in: number;
+    refresh_token?: string;
   }> {
     try {
       const response = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', {
@@ -267,10 +306,89 @@ class LinkedInService {
         },
       });
 
+      // Store token in database
+      const tokenData = response.data;
+      const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
+      
+      await databaseService.storeLinkedInToken({
+        accessToken: tokenData.access_token,
+        refreshToken: tokenData.refresh_token,
+        expiresAt,
+        scope: tokenData.scope,
+      });
+
+      // Update current instance token
+      this.accessToken = tokenData.access_token;
+      this.updateApiHeaders();
+
       return response.data;
     } catch (error) {
       console.error('❌ Error exchanging code for token:', error);
       throw error;
+    }
+  }
+
+  async refreshToken(): Promise<boolean> {
+    try {
+      const tokenData = await databaseService.getValidLinkedInToken();
+      if (!tokenData?.refreshToken) {
+        console.log('⚠️ No refresh token available');
+        return false;
+      }
+
+      const response = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', {
+        grant_type: 'refresh_token',
+        refresh_token: tokenData.refreshToken,
+        client_id: config.linkedin.clientId,
+        client_secret: config.linkedin.clientSecret,
+      }, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+
+      const newTokenData = response.data;
+      const expiresAt = new Date(Date.now() + newTokenData.expires_in * 1000);
+
+      // Update token in database
+      await databaseService.storeLinkedInToken({
+        accessToken: newTokenData.access_token,
+        refreshToken: newTokenData.refresh_token || tokenData.refreshToken,
+        expiresAt,
+        scope: newTokenData.scope,
+      });
+
+      // Update current instance token
+      this.accessToken = newTokenData.access_token;
+      this.updateApiHeaders();
+
+      console.log('✅ LinkedIn token refreshed successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Error refreshing LinkedIn token:', error);
+      return false;
+    }
+  }
+
+  async checkAndRefreshToken(): Promise<boolean> {
+    try {
+      const tokenData = await databaseService.getValidLinkedInToken();
+      if (!tokenData) {
+        console.log('⚠️ No LinkedIn token found');
+        return false;
+      }
+
+      // Check if token expires within the next 30 minutes
+      const thirtyMinutesFromNow = new Date(Date.now() + 30 * 60 * 1000);
+      if (tokenData.expiresAt <= thirtyMinutesFromNow) {
+        console.log('🔄 LinkedIn token expires soon, refreshing...');
+        return await this.refreshToken();
+      }
+
+      return true;
+    } catch (error) {
+      console.error('❌ Error checking LinkedIn token:', error);
+      return false;
     }
   }
 

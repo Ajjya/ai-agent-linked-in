@@ -105,7 +105,11 @@ class App {
       // Initialize database
       await databaseService.connect();
 
-      // Initialize scheduler
+      // Initialize LinkedIn token from database
+      const linkedinService = await import('./services/linkedin');
+      await linkedinService.default.initializeToken();
+
+      // Initialize scheduler (includes token refresh)
       await schedulerService.initialize();
 
       console.log('✅ Application initialized successfully');

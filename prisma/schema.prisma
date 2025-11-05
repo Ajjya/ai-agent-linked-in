@@ -77,3 +77,17 @@ model RssItem {
   
   @@map("rss_items")
 }
+
+model LinkedInToken {
+  id           String   @id @default(cuid())
+  accessToken  String
+  refreshToken String?  // LinkedIn refresh token for automatic renewal
+  expiresAt    DateTime // When the access token expires
+  tokenType    String   @default("Bearer")
+  scope        String?  // Granted permissions
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@map("linkedin_tokens")
+}
