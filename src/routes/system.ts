@@ -58,13 +58,22 @@ router.get('/debug/config', (req, res) => {
 // Trigger manual RSS fetch
 router.post('/rss/fetch', async (req, res) => {
   try {
-    await schedulerService.triggerRSSFetch();
+    console.log('\n📍 POST /api/system/rss/fetch endpoint called');
+    console.log('🔄 Calling schedulerService.triggerRSSFetch()...');
+    
+    // Don't wait for the async operation to complete, respond immediately
+    schedulerService.triggerRSSFetch().then(() => {
+      console.log('✅ triggerRSSFetch() background task completed');
+    }).catch(err => {
+      console.error('❌ Error in background RSS fetch task:', err);
+    });
+    
     res.json({
       success: true,
       message: 'RSS fetch triggered successfully',
     });
   } catch (error) {
-    console.error('Error triggering RSS fetch:', error);
+    console.error('❌ Error triggering RSS fetch:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to trigger RSS fetch',

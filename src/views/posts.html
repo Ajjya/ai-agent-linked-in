@@ -352,7 +352,7 @@
                     </div>
                     
                     <div class="post-content">
-                        ${escapeHtml(post.content.substring(0, 200))}${post.content.length > 200 ? '...' : ''}
+                        ${escapeHtml(post.content)}
                     </div>
                     
                     ${post.sourceUrl ? `<div style="margin-bottom: 15px;"><strong>Source:</strong> <a href="${post.sourceUrl}" target="_blank">${post.sourceUrl}</a></div>` : ''}

@@ -6,8 +6,12 @@ const router = Router();
 // Get all posts with pagination
 router.get('/', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 50;
-    const posts = await databaseService.getPosts(limit);
+    const limit = parseInt(req.query.limit as string) || 10;
+    const page = parseInt(req.query.page as string) || 1;
+    const offset = (page - 1) * limit;
+    
+    const posts = await databaseService.getPosts(limit, offset);
+    const total = await databaseService.getPostsCount();
     
     const postsWithParsedTags = posts.map(post => ({
       ...post,
@@ -17,6 +21,12 @@ router.get('/', async (req, res) => {
     res.json({
       success: true,
       data: postsWithParsedTags,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error('Error fetching posts:', error);

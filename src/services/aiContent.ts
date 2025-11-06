@@ -49,12 +49,14 @@ class AIContentService {
             role: 'system',
             content: `You are a professional LinkedIn content creator specializing in MongoDB and database technology. 
 Create engaging, attractive LinkedIn posts that capture attention and drive engagement.
+IMPORTANT: All content MUST be written in ENGLISH language only.
 Always make titles bold using **markdown** format.
 Avoid ellipsis (...) and generic phrases.
 Focus on value, insights, and actionable information.
 Keep the tone professional but friendly.
 Include relevant emojis to make content more visually appealing.
-The final content should be ready to post on LinkedIn.`,
+The final content should be ready to post on LinkedIn.
+Remember: Write everything in ENGLISH.`,
           },
           {
             role: 'user',
@@ -94,20 +96,23 @@ Category: ${category}
 Description: ${description}
 
 Requirements:
-1. Create a compelling, bold title (use **markdown** for bold)
-2. Write engaging body content (3-5 sentences max) that highlights key insights
-3. Make it professional yet conversational
-4. Remove any ellipsis (...) or generic phrases
-5. Add relevant emojis to make it visually appealing
-6. Include a call-to-action or thought-provoking question
-7. Format as a complete LinkedIn post ready to publish
-8. Keep it under 1500 characters
+1. WRITE EVERYTHING IN ENGLISH LANGUAGE - this is mandatory
+2. Create a compelling, bold title (use **markdown** for bold)
+3. Write extensive, engaging body content (maximum 800-1000 characters) with detailed insights and value
+4. Make it professional yet conversational
+5. Remove any ellipsis (...) or generic phrases - complete all sentences fully
+6. Add relevant emojis to make it visually appealing
+7. Include a strong call-to-action or thought-provoking question
+8. Format as a complete LinkedIn post ready to publish
+9. Maximize content length while keeping it high quality - aim for 900-1000 characters
+10. No ellipsis or truncation at the end
+11. Language: ENGLISH only
 
 Format your response as:
 ---TITLE---
-**Your Bold Title Here**
+**Your Bold Title Here in English**
 ---CONTENT---
-Your engaging post content here with emojis and formatting`;
+Your extensive and engaging post content here with emojis and formatting in English`;
   }
 
   private parseAIResponse(response: string, fallbackTitle: string): { title: string; content: string } {
@@ -129,18 +134,30 @@ Your engaging post content here with emojis and formatting`;
   }
 
   private formatContentForLinkedIn(content: string, link: string): string {
-    // Remove trailing dots or ellipsis
-    content = content.replace(/\.{3}$/, '').replace(/\.$/, '');
+    // Remove trailing ellipsis but keep the content complete
+    content = content.replace(/\.{3}$/, '').trim();
 
     // Add source link at the end if not already present
-    if (!content.includes('http')) {
+    if (!content.includes('http') && link) {
       content = `${content}\n\n🔗 Read more: ${link}`;
     }
 
     // Ensure content doesn't exceed LinkedIn's character limit
     const maxLength = config.posting.maxPostLength;
     if (content.length > maxLength) {
-      content = content.substring(0, maxLength - 10).trim() + '...';
+      // Trim at word boundary without adding ellipsis
+      let trimmed = content.substring(0, maxLength).trim();
+      
+      // Find last complete sentence
+      const lastPeriod = trimmed.lastIndexOf('.');
+      const lastNewline = trimmed.lastIndexOf('\n');
+      const cutPoint = Math.max(lastPeriod, lastNewline);
+      
+      if (cutPoint > maxLength - 500) {
+        trimmed = trimmed.substring(0, cutPoint + 1);
+      }
+      
+      content = trimmed.trim();
     }
 
     return content;

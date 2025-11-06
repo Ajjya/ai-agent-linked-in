@@ -100,6 +100,7 @@ class RSSContentService {
     // Check if item already exists
     const existingItem = await databaseService.getRssItem(guid);
     if (existingItem) {
+      console.log(`⏭️  Already processed: ${item.title}`);
       return; // Skip if already processed
     }
 
@@ -113,7 +114,8 @@ class RSSContentService {
       pubDate,
     });
 
-    console.log(`📝 New RSS item stored: ${item.title}`);
+    console.log(`\n📝 New RSS item stored: ${item.title}`);
+    console.log(`   Published: ${pubDate.toLocaleDateString()}`);
 
     // Create potential post from RSS item
     await this.createPostFromRSSItem(item);
@@ -123,11 +125,12 @@ class RSSContentService {
     const guid = item.guid || item.link;
     const pubDate = new Date(item.pubDate);
 
-    // Skip items older than 30 days
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Skip items older than 60 days (2 months)
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setDate(twoMonthsAgo.getDate() - 60);
 
-    if (pubDate < thirtyDaysAgo) {
+    if (pubDate < twoMonthsAgo) {
+      console.log(`⏭️  Skipping old article (${pubDate.toLocaleDateString()}): ${item.title}`);
       await databaseService.markRssItemProcessed(guid);
       return;
     }
@@ -139,34 +142,34 @@ class RSSContentService {
     let postContent: string;
 
     try {
-      // Try to use AI to generate attractive content
+      // AI content generation is REQUIRED
       const aiConfigured = await aiContentService.isConfigured();
-      if (aiConfigured) {
-        console.log(`\n🤖 AI Content Generation for: ${item.title}`);
-        const description = this.cleanDescription(item.contentSnippet || item.content || '');
+      if (!aiConfigured) {
+        console.error(`❌ AI not configured. Skipping post - OPENAI_API_KEY is required`);
+        console.log(`   💡 Set OPENAI_API_KEY in .env to enable AI content generation`);
+        return;
+      }
+
+      console.log(`\n🤖 AI Content Generation for: ${item.title}`);
+      const description = this.cleanDescription(item.contentSnippet || item.content || '');
+      
+      try {
+        console.log(`   ⏳ Calling ChatGPT (${category})...`);
+        const aiContent = await aiContentService.generateLinkedInContent({
+          title,
+          description,
+          link: item.link || '',
+          category
+        });
         
-        try {
-          console.log(`   ⏳ Calling ChatGPT (${category})...`);
-          const aiContent = await aiContentService.generateLinkedInContent({
-            title,
-            description,
-            link: item.link || '',
-            category
-          });
-          
-          title = aiContent.title;
-          postContent = aiContent.content;
-          console.log(`   ✅ AI Generated Title: ${title}`);
-          console.log(`   ✅ AI Generated Content (${postContent.length} chars)`);
-        } catch (aiError: any) {
-          console.warn(`   ⚠️ AI generation failed: ${aiError.message}`);
-          console.log(`   📝 Falling back to template-based content...`);
-          postContent = this.generatePostContent(item);
-        }
-      } else {
-        console.log(`\n📝 Generating content from template (AI not configured)`);
-        console.log(`   💡 Tip: Set OPENAI_API_KEY in .env to enable AI content generation`);
-        postContent = this.generatePostContent(item);
+        title = aiContent.title;
+        postContent = aiContent.content;
+        console.log(`   ✅ AI Generated Title: ${title}`);
+        console.log(`   ✅ AI Generated Content (${postContent.length} chars)`);
+      } catch (aiError: any) {
+        console.error(`❌ AI generation failed: ${aiError.message}`);
+        console.log(`   ⚠️ Skipping post due to AI generation error`);
+        throw aiError;
       }
 
       const postData: any = {
@@ -198,109 +201,7 @@ class RSSContentService {
     }
   }
 
-  private generatePostContent(item: RSSItem): string {
-    const title = item.title || 'MongoDB Update';
-    const description = this.cleanDescription(item.contentSnippet || item.content || '');
-    const category = this.categorizePost(item);
-    
-    return this.createEngagingPost(title, description, item.link || '', category);
-  }
 
-  private createEngagingPost(title: string, description: string, link: string, category: string): string {
-    const templates = this.getPostTemplates();
-    const template = templates[category] || templates.general;
-    
-    if (!template) {
-      throw new Error('No template found for category: ' + category);
-    }
-    
-    // Extract key points from description
-    const keyPoints = this.extractKeyPoints(description);
-    const hashtags = this.generateHashtags(title, category);
-    
-    let content = template
-      .replace('{title}', title)
-      .replace('{keyPoints}', keyPoints)
-      .replace('{link}', link)
-      .replace('{hashtags}', hashtags);
-
-    // Ensure content doesn't exceed LinkedIn's character limit
-    if (content.length > config.posting.maxPostLength) {
-      content = content.substring(0, config.posting.maxPostLength - 3) + '...';
-    }
-
-    return content;
-  }
-
-  private getPostTemplates(): Record<string, string> {
-    return {
-      tutorial: `🎯 {title}
-
-{keyPoints}
-
-🔗 Read more: {link}
-
-{hashtags}`,
-
-      case_study: `📊 {title}
-
-{keyPoints}
-
-🔗 Full case study: {link}
-
-{hashtags}`,
-
-      announcement: `🎉 {title}
-
-{keyPoints}
-
-🔗 Learn more: {link}
-
-{hashtags}`,
-
-      general: `🍃 {title}
-
-{keyPoints}
-
-🔗 Read article: {link}
-
-{hashtags}`
-    };
-  }
-
-  private extractKeyPoints(description: string): string {
-    if (!description || description.length < 50) {
-      return 'Discover new MongoDB features and best practices that can improve your development workflow and database performance.';
-    }
-
-    // Take meaningful content and make it longer
-    const paragraphs = description.split('\n').filter(p => p.trim().length > 20);
-    let mainContent = paragraphs.slice(0, 2).join(' ').trim() || description;
-
-    // Clean up but keep more content
-    mainContent = mainContent
-      .replace(/^(The post|Continue reading|Learn more).*$/gm, '') // Remove footers
-      .replace(/\s+/g, ' ') // Clean whitespace
-      .trim();
-
-    // Expand content to be more descriptive (aim for 300-500 chars)
-    if (mainContent.length < 200) {
-      // Try to get more content from the description
-      const allText = description.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-      if (allText.length > mainContent.length) {
-        mainContent = allText.substring(0, 400).trim();
-      }
-    }
-
-    // If still too long, trim properly without cutting words
-    if (mainContent.length > 500) {
-      const trimmed = mainContent.substring(0, 480);
-      const lastSpace = trimmed.lastIndexOf(' ');
-      mainContent = trimmed.substring(0, lastSpace) + '...';
-    }
-
-    return mainContent;
-  }
 
   private cleanDescription(description: string): string {
     if (!description) return '';
@@ -316,25 +217,11 @@ class RSSContentService {
       .replace(/&#x27;/g, "'") // Replace &#x27; with '
       .replace(/&[a-zA-Z0-9#]+;/g, '') // Remove other HTML entities
       .replace(/\s+/g, ' ') // Replace multiple spaces with single space
-      .replace(/^\s*The post.*first appeared on.*$/gm, '') // Remove footer text
-      .replace(/^\s*Continue reading.*$/gm, '') // Remove "Continue reading" text
       .trim();
 
-    // Remove common unwanted phrases
-    const unwantedPhrases = [
-      'The post',
-      'first appeared on',
-      'Continue reading',
-      'Read more',
-      'Learn more',
-      'Click here'
-    ];
-
-    unwantedPhrases.forEach(phrase => {
-      const regex = new RegExp(phrase, 'gi');
-      cleaned = cleaned.replace(regex, '');
-    });
-
+    // Only remove the very last "footer" line, not the main content
+    cleaned = cleaned.replace(/\s*The post.*?first appeared on.*$/i, '');
+    
     return cleaned.trim();
   }
 

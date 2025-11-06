@@ -34,9 +34,13 @@ class DatabaseService {
     category?: string;
     tags?: string[];
   }): Promise<any> {
+    // Automatically set status to 'scheduled' if scheduledAt is provided
+    const status = data.scheduledAt ? 'scheduled' : 'draft';
+    
     return this.prisma.post.create({
       data: {
         ...data,
+        status,
         tags: data.tags ? JSON.stringify(data.tags) : null,
       },
     });
@@ -68,12 +72,13 @@ class DatabaseService {
     });
   }
 
-  async getPosts(limit = 50): Promise<any[]> {
+  async getPosts(limit = 50, offset = 0): Promise<any[]> {
     return this.prisma.post.findMany({
       orderBy: {
         createdAt: 'desc',
       },
       take: limit,
+      skip: offset,
       include: {
         publishLogs: {
           orderBy: { createdAt: 'desc' },
@@ -81,6 +86,10 @@ class DatabaseService {
         },
       },
     });
+  }
+
+  async getPostsCount(): Promise<number> {
+    return this.prisma.post.count();
   }
 
   async updatePostStatus(
