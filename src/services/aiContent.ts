@@ -48,23 +48,44 @@ class AIContentService {
           {
             role: 'system',
             content: `You are a professional LinkedIn content creator specializing in MongoDB and database technology. 
-Create engaging, attractive LinkedIn posts that capture attention and drive engagement.
-IMPORTANT: All content MUST be written in ENGLISH language only.
-Always make titles bold using **markdown** format.
-Avoid ellipsis (...) and generic phrases.
-Focus on value, insights, and actionable information.
-Keep the tone professional but friendly.
-Include relevant emojis to make content more visually appealing.
-The final content should be ready to post on LinkedIn.
-Remember: Write everything in ENGLISH.`,
+Create engaging, attractive, and NATURAL-SOUNDING LinkedIn posts that feel human-written.
+
+CRITICAL: VARY YOUR STYLE - posts should look different from each other!
+
+FORMATTING OPTIONS (mix and match):
+- All content MUST be written in ENGLISH language only
+- Sometimes use emojis (2-4 per post), sometimes skip them
+- Sometimes use bullet points (• or -), sometimes write in paragraphs
+- Sometimes use numbered lists, sometimes flowing text
+- Sometimes add line breaks, sometimes keep it compact
+- Always make titles bold using **markdown** format
+- Keep posts CONCISE - 300-500 characters (aim for ~400 chars)
+
+STYLE VARIETY (important!):
+- Post 1: Might be emoji-heavy with bullet points
+- Post 2: Might be a clean paragraph with no emojis
+- Post 3: Might have numbered steps
+- Post 4: Might use question format with minimal emojis
+- Post 5: Might be storytelling style
+Make each post feel UNIQUE and human-written!
+
+CONTENT GUIDELINES:
+- Professional yet conversational tone
+- Focus on value and actionable insights
+- Avoid repetitive patterns between posts
+- NO ellipsis (...)
+- Include engaging hooks and calls-to-action when appropriate
+- Make it authentic and relatable
+
+The final content should be ready to post on LinkedIn immediately.`,
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 1000,
+        temperature: 0.8,
+        max_tokens: 500,
       });
 
       const generatedText = response.choices[0]?.message?.content || '';
@@ -95,24 +116,62 @@ Title: ${title}
 Category: ${category}
 Description: ${description}
 
-Requirements:
-1. WRITE EVERYTHING IN ENGLISH LANGUAGE - this is mandatory
+CORE REQUIREMENTS:
+1. WRITE EVERYTHING IN ENGLISH LANGUAGE - mandatory
 2. Create a compelling, bold title (use **markdown** for bold)
-3. Write extensive, engaging body content (maximum 800-1000 characters) with detailed insights and value
-4. Make it professional yet conversational
-5. Remove any ellipsis (...) or generic phrases - complete all sentences fully
-6. Add relevant emojis to make it visually appealing
-7. Include a strong call-to-action or thought-provoking question
-8. Format as a complete LinkedIn post ready to publish
-9. Maximize content length while keeping it high quality - aim for 900-1000 characters
-10. No ellipsis or truncation at the end
-11. Language: ENGLISH only
+3. Content length: 300-500 characters (aim for ~400 characters)
+4. Make it feel HUMAN and NATURAL - avoid robotic patterns
+5. NO ellipsis (...) - complete all sentences
+6. Professional yet conversational tone
+
+STYLE VARIETY (IMPORTANT - choose ONE approach per post):
+
+Option A - List Format:
+🚀 Opening line
+• Point 1
+• Point 2
+• Point 3
+Closing thought or question
+
+Option B - Paragraph Style:
+Clean flowing text with occasional line breaks. Focus on storytelling or insights. Maybe 1-2 emojis if it feels natural.
+
+Option C - Question-Based:
+Start with a compelling question. Provide context. End with call-to-action. Light emoji use.
+
+Option D - Numbered Steps:
+Clear intro
+1. First step/benefit
+2. Second step/benefit
+3. Third step/benefit
+Summary or question
+
+Option E - Hybrid:
+Mix paragraphs with occasional bullets where it makes sense naturally.
+
+EMOJI USAGE (vary this):
+- Some posts: 3-4 emojis for emphasis
+- Some posts: 1-2 emojis or none
+- Some posts: Emojis as section markers
+Never force emojis - only use when they add value
+
+CONTENT LENGTH TARGET:
+- Minimum: 300 characters
+- Target: 400 characters
+- Maximum: 500 characters
+Make sure posts are substantial but not too long!
+
+MAKE IT AUTHENTIC:
+- Don't use the same structure twice in a row
+- Vary sentence length and rhythm
+- Sometimes formal, sometimes casual
+- Be creative and human!
 
 Format your response as:
 ---TITLE---
 **Your Bold Title Here in English**
 ---CONTENT---
-Your extensive and engaging post content here with emojis and formatting in English`;
+[Your creative, varied content (300-500 chars) - could be lists, paragraphs, questions, or mix]`;
   }
 
   private parseAIResponse(response: string, fallbackTitle: string): { title: string; content: string } {

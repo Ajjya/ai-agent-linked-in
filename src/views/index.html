@@ -155,6 +155,14 @@
             margin: 10px 0;
         }
         
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        
         .status-indicator {
             display: inline-block;
             width: 10px;
@@ -298,34 +306,85 @@
         }
 
         async function triggerRSSFetch() {
+            const button = event.target;
+            const originalText = button.textContent;
+            
             try {
+                button.disabled = true;
+                button.textContent = '⏳ Fetching RSS...';
                 showMessage('Triggering RSS fetch...', 'info');
+                
                 const response = await fetch('/api/system/rss/fetch', { method: 'POST' });
                 const data = await response.json();
                 
                 if (data.success) {
-                    showMessage(data.message, 'success');
+                    showMessage(data.message + ' - Processing posts...', 'success');
+                    
+                    // Keep updating dashboard every 2 seconds until RSS processing completes
+                    let updateCount = 0;
+                    const maxUpdates = 30; // Stop after 60 seconds (30 * 2s)
+                    let previousTotal = 0;
+                    
+                    const updateInterval = setInterval(async () => {
+                        await loadDashboard();
+                        updateCount++;
+                        
+                        // Get current total posts
+                        const currentTotal = parseInt(document.getElementById('totalPosts').textContent) || 0;
+                        
+                        // Stop if:
+                        // 1. No new posts added in last check (processing complete)
+                        // 2. Reached max updates
+                        if ((currentTotal > 0 && currentTotal === previousTotal) || updateCount >= maxUpdates) {
+                            clearInterval(updateInterval);
+                            button.disabled = false;
+                            button.textContent = originalText;
+                            showMessage(`RSS processing complete! ${currentTotal} posts created.`, 'success');
+                        }
+                        
+                        previousTotal = currentTotal;
+                    }, 2000);
                 } else {
                     showMessage(data.error, 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
                 }
             } catch (error) {
                 showMessage('Failed to trigger RSS fetch', 'error');
+                button.disabled = false;
+                button.textContent = originalText;
             }
         }
 
         async function triggerPublishing() {
+            const button = event.target;
+            const originalText = button.textContent;
+            
             try {
+                button.disabled = true;
+                button.textContent = '⏳ Publishing...';
                 showMessage('Triggering post publishing...', 'info');
+                
                 const response = await fetch('/api/system/posts/publish', { method: 'POST' });
                 const data = await response.json();
                 
                 if (data.success) {
-                    showMessage(data.message, 'success');
+                    showMessage(data.message + ' - Refreshing dashboard...', 'success');
+                    // Reload dashboard to show updated stats
+                    setTimeout(() => {
+                        loadDashboard();
+                        button.disabled = false;
+                        button.textContent = originalText;
+                    }, 2000);
                 } else {
                     showMessage(data.error, 'error');
+                    button.disabled = false;
+                    button.textContent = originalText;
                 }
             } catch (error) {
                 showMessage('Failed to trigger publishing', 'error');
+                button.disabled = false;
+                button.textContent = originalText;
             }
         }
 

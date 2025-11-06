@@ -230,6 +230,10 @@ class SchedulerService {
     });
 
     console.log(`📅 Post scheduled for immediate publishing: ${post.title}`);
+    
+    // Trigger immediate processing of scheduled posts
+    console.log(`🚀 Triggering immediate publish for post: ${post.title}`);
+    await this.processScheduledPosts();
   }
 
   // Get scheduler status and next run times

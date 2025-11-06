@@ -21,6 +21,7 @@ interface RSSItem {
 
 class RSSContentService {
   private parser: Parser<{}, RSSItem>;
+  private postCounter: number = 0; // Track number of posts created in this session
 
   constructor() {
     this.parser = new Parser({
@@ -179,7 +180,7 @@ class RSSContentService {
         sourceType: 'rss',
         category,
         tags: item.categories || [],
-        scheduledAt: this.calculateScheduledDate(pubDate),
+        scheduledAt: this.calculateScheduledDate(),
       };
 
       if (imageUrl) {
@@ -274,29 +275,56 @@ class RSSContentService {
     return 'general'; // Default category
   }
 
-  private calculateScheduledDate(pubDate: Date): Date {
+  private calculateScheduledDate(): Date {
     const now = new Date();
     const scheduledDate = new Date(now);
 
-    // Get next posting day
+    // Get posting configuration
     const postingDays = config.posting.days; // [2, 5] for Tuesday, Friday
     const timeParts = config.posting.time.split(':').map(Number);
     const hour = timeParts[0] || 10;
     const minute = timeParts[1] || 30;
 
-    // Find next posting day
-    let daysUntilNext = 1;
-    const today = now.getDay();
+    // Calculate which posting slot this post should take
+    // Distribute posts across future posting days
+    const daysToAdd = Math.floor(this.postCounter / 1); // 1 post per day
+    this.postCounter++; // Increment for next post
 
+    // Find the next posting day, then add additional days based on counter
+    let totalDaysToAdd = 0;
+    const today = now.getDay();
+    
+    // First, find the next posting day
+    let foundFirstDay = false;
     for (let i = 0; i < 7; i++) {
       const checkDay = (today + i + 1) % 7;
       if (postingDays.includes(checkDay)) {
-        daysUntilNext = i + 1;
+        totalDaysToAdd = i + 1;
+        foundFirstDay = true;
         break;
       }
     }
 
-    scheduledDate.setDate(now.getDate() + daysUntilNext);
+    if (!foundFirstDay) {
+      totalDaysToAdd = 1; // Fallback
+    }
+
+    // Now add additional posting days based on post counter
+    let additionalDays = 0;
+    for (let i = 0; i < daysToAdd; i++) {
+      // Find next posting day after current position
+      for (let j = 1; j <= 7; j++) {
+        const checkDay = (today + totalDaysToAdd + additionalDays + j) % 7;
+        if (postingDays.includes(checkDay)) {
+          additionalDays += j;
+          break;
+        }
+      }
+    }
+
+    totalDaysToAdd += additionalDays;
+
+    scheduledDate.setDate(now.getDate() + totalDaysToAdd);
     scheduledDate.setHours(hour, minute, 0, 0);
 
     return scheduledDate;

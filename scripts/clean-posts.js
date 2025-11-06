@@ -40,55 +40,24 @@ async function cleanPosts() {
       process.exit(0);
     }
 
-    const toDelete = draftPosts + scheduledPosts + failedPosts;
-    if (toDelete === 0) {
-      console.log('✅ No posts to clean! Only published posts exist.\n');
-      await prisma.$disconnect();
-      process.exit(0);
-    }
-
     if (!forceFlag) {
-      console.log(`⚠️  This will delete ${toDelete} non-published posts to prepare for AI-generated content.\n`);
+      console.log(`⚠️  This will delete ALL ${totalPosts} posts (including published) to prepare for fresh AI-generated content.\n`);
       console.log('Posts to delete:');
-      if (draftPosts > 0) console.log(`   - ${draftPosts} draft posts`);
+      if (publishedPosts > 0) console.log(`   - ${publishedPosts} published posts`);
       if (scheduledPosts > 0) console.log(`   - ${scheduledPosts} scheduled posts`);
+      if (draftPosts > 0) console.log(`   - ${draftPosts} draft posts`);
       if (failedPosts > 0) console.log(`   - ${failedPosts} failed posts`);
       console.log();
     }
 
-    console.log('🗑️  Deleting posts...\n');
+    console.log('🗑️  Deleting ALL posts...\n');
 
-    let deletedCount = 0;
-
-    // Delete draft posts
-    if (draftPosts > 0) {
-      const result = await prisma.post.deleteMany({
-        where: { status: 'draft' }
-      });
-      console.log(`   ✅ Deleted ${result.count} draft posts`);
-      deletedCount += result.count;
-    }
-
-    // Delete scheduled posts
-    if (scheduledPosts > 0) {
-      const result = await prisma.post.deleteMany({
-        where: { status: 'scheduled' }
-      });
-      console.log(`   ✅ Deleted ${result.count} scheduled posts`);
-      deletedCount += result.count;
-    }
-
-    // Delete failed posts
-    if (failedPosts > 0) {
-      const result = await prisma.post.deleteMany({
-        where: { status: 'failed' }
-      });
-      console.log(`   ✅ Deleted ${result.count} failed posts`);
-      deletedCount += result.count;
-    }
+    // Delete ALL posts at once
+    const result = await prisma.post.deleteMany({});
+    console.log(`   ✅ Deleted ${result.count} posts (all statuses)\n`);
 
     // Clean RSS items to reset "Already processed" state
-    console.log('\n🔄 Cleaning "Already processed" RSS items...\n');
+    console.log('🔄 Cleaning "Already processed" RSS items...\n');
     const totalRSSItems = await prisma.rssItem.count();
     const processedRSSItems = await prisma.rssItem.count({ where: { processed: true } });
     
@@ -104,21 +73,19 @@ async function cleanPosts() {
 
     // Count remaining
     const remainingPosts = await prisma.post.count();
-    const remainingPublished = await prisma.post.count({ where: { status: 'published' } });
 
     console.log('\n📊 Updated Database Status:');
     console.log(`   Total Posts: ${remainingPosts}`);
-    console.log(`   └─ Published: ${remainingPublished} (preserved)\n`);
     
     const remainingRSSItems = await prisma.rssItem.count();
     console.log(`   Total RSS Items: ${remainingRSSItems} (all reset)\n`);
 
-    console.log(`✅ Cleanup complete! Deleted ${deletedCount} posts and reset RSS items.\n`);
+    console.log(`✅ Cleanup complete! Deleted all posts and reset RSS items.\n`);
     console.log('💡 Next steps:');
     console.log('   1. Start the app: npm run dev');
     console.log('   2. Trigger RSS fetch: curl -X POST http://localhost:3000/api/system/rss/fetch');
-    console.log('   2. New RSS posts will be fetched with AI-generated content');
-    console.log('   3. Check dashboard to see AI-enhanced posts\n');
+    console.log('   3. New RSS posts will be fetched with AI-generated content');
+    console.log('   4. Check dashboard to see AI-enhanced posts\n');
 
   } catch (error) {
     console.error('❌ Error during cleanup:', error);

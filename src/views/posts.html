@@ -256,6 +256,10 @@
             <div id="postsContainer" class="loading">
                 Loading posts...
             </div>
+            
+            <!-- Pagination Controls -->
+            <div id="paginationContainer" style="display: flex; justify-content: center; align-items: center; margin-top: 20px; gap: 10px;">
+            </div>
         </div>
     </div>
 
@@ -312,13 +316,19 @@
     <script>
         let currentEditingId = null;
 
-        async function loadPosts() {
+        let currentPage = 1;
+        let totalPages = 1;
+        
+        async function loadPosts(page = 1) {
             try {
-                const response = await fetch('/api/posts');
+                const response = await fetch(`/api/posts?page=${page}&limit=10`);
                 const data = await response.json();
                 
                 if (data.success) {
+                    currentPage = data.pagination.page;
+                    totalPages = data.pagination.pages;
                     displayPosts(data.data);
+                    displayPagination(data.pagination);
                 } else {
                     document.getElementById('postsContainer').innerHTML = 
                         `<div style="color: red;">Error: ${data.error}</div>`;
@@ -328,6 +338,29 @@
                 document.getElementById('postsContainer').innerHTML = 
                     '<div style="color: red;">Failed to load posts</div>';
             }
+        }
+        
+        function displayPagination(pagination) {
+            const { page, pages, total } = pagination;
+            
+            if (pages <= 1) {
+                document.getElementById('paginationContainer').innerHTML = '';
+                return;
+            }
+            
+            let paginationHtml = `
+                <button class="btn" ${page === 1 ? 'disabled' : ''} onclick="loadPosts(${page - 1})">
+                    ← Previous
+                </button>
+                <span style="margin: 0 15px;">
+                    Page ${page} of ${pages} (${total} total posts)
+                </span>
+                <button class="btn" ${page === pages ? 'disabled' : ''} onclick="loadPosts(${page + 1})">
+                    Next →
+                </button>
+            `;
+            
+            document.getElementById('paginationContainer').innerHTML = paginationHtml;
         }
 
         function displayPosts(posts) {
@@ -422,8 +455,24 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert(data.message);
-                    loadPosts();
+                    // Show processing message
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'success';
+                    messageDiv.textContent = '⏳ Publishing post to LinkedIn...';
+                    document.querySelector('.section').insertBefore(messageDiv, document.getElementById('postsContainer'));
+                    
+                    // Wait a bit for publishing to complete, then reload
+                    setTimeout(async () => {
+                        messageDiv.remove();
+                        await loadPosts(currentPage);
+                        
+                        // Show completion message
+                        const completionDiv = document.createElement('div');
+                        completionDiv.className = 'success';
+                        completionDiv.textContent = '✅ Post published successfully!';
+                        document.querySelector('.section').insertBefore(completionDiv, document.getElementById('postsContainer'));
+                        setTimeout(() => completionDiv.remove(), 3000);
+                    }, 2000);
                 } else {
                     alert('Error: ' + data.error);
                 }
@@ -445,7 +494,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    loadPosts();
+                    // Reload current page to show updated list
+                    loadPosts(currentPage);
                 } else {
                     alert('Error: ' + data.error);
                 }

@@ -81,10 +81,10 @@ const config: AppConfig = {
   },
 
   content: {
-    mongodbRssUrl: process.env.MONGODB_RSS_URL || 'https://www.mongodb.com/blog/rss.xml',
+    mongodbRssUrl: process.env.MONGODB_RSS_URL || 'https://www.mongodb.com/company/blog/rss',
     fallbackRssUrls: [
+      'https://www.mongodb.com/company/blog/rss',
       'https://feeds.feedburner.com/MongoDBBlog',
-      'https://www.mongodb.com/feeds/blog',
     ],
   },
 
