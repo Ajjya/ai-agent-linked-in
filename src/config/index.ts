@@ -11,12 +11,20 @@ interface AppConfig {
 
   // LinkedIn API
   linkedin: {
+    // App 1: For OAuth login and user authentication
     clientId: string;
     clientSecret: string;
     redirectUri: string;
+    
+    // App 2: For publishing to organization (Community Management API)
+    publishClientId: string;
+    publishClientSecret: string;
+    
+    // Legacy/shared settings
     accessToken: string;
     profileId: string;
     companyId: string;
+    publishAsOrganization: boolean; // true = use publish app, false = use auth app
   };
 
   // Posting schedule
@@ -63,12 +71,20 @@ const config: AppConfig = {
   appName: process.env.APP_NAME || 'LinkedIn MongoDB Agent',
 
   linkedin: {
+    // App 1: OAuth & Authentication
     clientId: process.env.LINKEDIN_CLIENT_ID || '',
     clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
     redirectUri: process.env.LINKEDIN_REDIRECT_URI || 'http://localhost:3000/auth/linkedin/callback',
+    
+    // App 2: Publishing (Community Management API)
+    publishClientId: process.env.LINKEDIN_PUBLISH_CLIENT_ID || '',
+    publishClientSecret: process.env.LINKEDIN_PUBLISH_CLIENT_SECRET || '',
+    
+    // Shared settings
     accessToken: process.env.LINKEDIN_ACCESS_TOKEN || '',
     profileId: process.env.LINKEDIN_PROFILE_ID || '',
-    companyId: process.env.LINKEDIN_COMPANY_ID || 'mongodbinc',
+    companyId: process.env.LINKEDIN_COMPANY_ID || '',
+    publishAsOrganization: process.env.LINKEDIN_PUBLISH_AS_ORGANIZATION === 'true',
   },
 
   posting: {

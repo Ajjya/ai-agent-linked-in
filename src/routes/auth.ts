@@ -3,20 +3,38 @@ import linkedinService from '../services/linkedin';
 
 const router = Router();
 
-// Get LinkedIn authorization URL
+// Get LinkedIn authorization URL (App 1 - Personal)
 router.get('/linkedin/auth', (req, res) => {
   try {
     const authUrl = linkedinService.getAuthorizationUrl();
     res.json({
       success: true,
       authUrl,
-      message: 'Visit this URL to authorize the application',
+      message: 'Visit this URL to authorize the application (Personal posting)',
     });
   } catch (error) {
     console.error('Error getting authorization URL:', error);
     res.status(500).json({
       success: false,
       error: 'Failed to generate authorization URL',
+    });
+  }
+});
+
+// Get LinkedIn organization authorization URL (App 2 - Organization)
+router.get('/linkedin/auth-org', (req, res) => {
+  try {
+    const authUrl = linkedinService.getOrganizationAuthUrl();
+    res.json({
+      success: true,
+      authUrl,
+      message: 'Visit this URL to authorize organization publishing (App 2)',
+    });
+  } catch (error) {
+    console.error('Error getting organization authorization URL:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to generate organization authorization URL',
     });
   }
 });

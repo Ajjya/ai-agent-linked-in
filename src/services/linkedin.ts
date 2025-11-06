@@ -182,21 +182,36 @@ class LinkedInService {
     try {
       console.log(`📤 Publishing LinkedIn post: ${postData.title}`);
 
-      // Try to get stored user ID first
-      let linkedInUserId: string | undefined;
-      const latestToken = await databaseService.getLatestLinkedInToken();
-      if (latestToken?.linkedInUserId) {
-        linkedInUserId = latestToken.linkedInUserId;
-        console.log('✅ Using stored LinkedIn User ID:', linkedInUserId);
+      let authorUrn: string;
+      
+      // Check if we should publish as organization or as person
+      if (config.linkedin.publishAsOrganization) {
+        // Publishing as Organization
+        if (!config.linkedin.companyId) {
+          throw new Error('LINKEDIN_COMPANY_ID is required when LINKEDIN_PUBLISH_AS_ORGANIZATION=true');
+        }
+        authorUrn = `urn:li:organization:${config.linkedin.companyId}`;
+        console.log('✅ Publishing as Organization:', config.linkedin.companyId);
+        console.log('   Author URN:', authorUrn);
       } else {
-        // Fallback to fetching profile
-        console.log('ℹ️  No stored user ID, fetching from profile...');
-        const profile = await this.getProfile();
-        linkedInUserId = profile.sub;
-        console.log('✅ LinkedIn User ID from profile:', linkedInUserId);
+        // Publishing as Person
+        // Try to get stored user ID first
+        let linkedInUserId: string | undefined;
+        const latestToken = await databaseService.getLatestLinkedInToken();
+        if (latestToken?.linkedInUserId) {
+          linkedInUserId = latestToken.linkedInUserId;
+          console.log('✅ Using stored LinkedIn User ID:', linkedInUserId);
+        } else {
+          // Fallback to fetching profile
+          console.log('ℹ️  No stored user ID, fetching from profile...');
+          const profile = await this.getProfile();
+          linkedInUserId = profile.sub;
+          console.log('✅ LinkedIn User ID from profile:', linkedInUserId);
+        }
+        authorUrn = `urn:li:person:${linkedInUserId}`;
+        console.log('✅ Publishing as Person');
+        console.log('   Author URN:', authorUrn);
       }
-
-      const authorUrn = `urn:li:person:${linkedInUserId}`;
 
       let shareContent: LinkedInShareContent = {
         author: authorUrn,
@@ -331,13 +346,29 @@ class LinkedInService {
 
   // OAuth helper methods for initial setup
   getAuthorizationUrl(): string {
+    // Always use App 1 (auth app) for user login
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: config.linkedin.clientId,
+      client_id: config.linkedin.clientId, // App 1: OAuth login
       redirect_uri: config.linkedin.redirectUri,
-      // Scopes: openid and profile for OIDC userinfo, w_member_social for posting
+      // Scopes for authentication and personal posting
       scope: 'openid profile w_member_social',
       state: 'linkedin_oauth_' + Date.now(),
+    });
+
+    return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
+  }
+
+  // Get authorization URL for organization publishing (App 2)
+  getOrganizationAuthUrl(): string {
+    // Use App 2 (publish app) for organization access
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: config.linkedin.publishClientId, // App 2: Community Management
+      redirect_uri: config.linkedin.redirectUri, // Same redirect URI
+      // Scopes for organization publishing
+      scope: 'openid profile w_organization_social',
+      state: 'linkedin_org_oauth_' + Date.now(),
     });
 
     return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
@@ -350,11 +381,23 @@ class LinkedInService {
   }> {
     try {
       console.log('🔄 Exchanging authorization code for token...');
+      
+      // Determine which app credentials to use based on state or config
+      // If publishing as organization, use App 2 credentials
+      const usePublishApp = config.linkedin.publishAsOrganization && 
+                            config.linkedin.publishClientId && 
+                            config.linkedin.publishClientSecret;
+      
+      const clientId = usePublishApp ? config.linkedin.publishClientId : config.linkedin.clientId;
+      const clientSecret = usePublishApp ? config.linkedin.publishClientSecret : config.linkedin.clientSecret;
+      
+      console.log(`🔑 Using ${usePublishApp ? 'App 2 (Publish)' : 'App 1 (Auth)'} credentials`);
+      
       const response = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', {
         grant_type: 'authorization_code',
         code,
-        client_id: config.linkedin.clientId,
-        client_secret: config.linkedin.clientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: config.linkedin.redirectUri,
       }, {
         headers: {
@@ -421,11 +464,18 @@ class LinkedInService {
         return false;
       }
 
+      // Determine which app to use for refresh based on stored scope
+      const usePublishApp = tokenData.scope?.includes('w_organization_social');
+      const clientId = usePublishApp ? config.linkedin.publishClientId : config.linkedin.clientId;
+      const clientSecret = usePublishApp ? config.linkedin.publishClientSecret : config.linkedin.clientSecret;
+      
+      console.log(`🔄 Refreshing token using ${usePublishApp ? 'App 2 (Publish)' : 'App 1 (Auth)'}`);
+
       const response = await axios.post('https://www.linkedin.com/oauth/v2/accessToken', {
         grant_type: 'refresh_token',
         refresh_token: tokenData.refreshToken,
-        client_id: config.linkedin.clientId,
-        client_secret: config.linkedin.clientSecret,
+        client_id: clientId,
+        client_secret: clientSecret,
       }, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',

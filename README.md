@@ -88,15 +88,52 @@ Visit `http://localhost:3000` to access the web dashboard.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `LINKEDIN_CLIENT_ID` | LinkedIn App Client ID | - |
-| `LINKEDIN_CLIENT_SECRET` | LinkedIn App Client Secret | - |
-| `LINKEDIN_ACCESS_TOKEN` | LinkedIn OAuth Access Token | - |
+| **App 1: Authentication** | | |
+| `LINKEDIN_CLIENT_ID` | App 1 Client ID (OAuth login) | - |
+| `LINKEDIN_CLIENT_SECRET` | App 1 Client Secret | - |
+| **App 2: Organization Publishing** | | |
+| `LINKEDIN_PUBLISH_CLIENT_ID` | App 2 Client ID (Community Management API) | - |
+| `LINKEDIN_PUBLISH_CLIENT_SECRET` | App 2 Client Secret | - |
+| **Publishing Settings** | | |
+| `LINKEDIN_COMPANY_ID` | LinkedIn Organization ID | - |
+| `LINKEDIN_PUBLISH_AS_ORGANIZATION` | `true` = org (App 2), `false` = personal (App 1) | `false` |
+| **AI Configuration** | | |
 | `OPENAI_API_KEY` | OpenAI API Key for ChatGPT | - |
 | `OPENAI_MODEL` | ChatGPT Model (gpt-3.5-turbo, gpt-4) | `gpt-3.5-turbo` |
+| **Scheduling** | | |
 | `POSTING_DAYS` | Posting days (0=Sun, 1=Mon, etc.) | `2,5` (Tue, Fri) |
 | `POSTING_TIME` | Posting time (HH:mm) | `10:30` |
 | `TIMEZONE` | Timezone for scheduling | `Europe/Lisbon` |
+| **Content** | | |
 | `MONGODB_RSS_URL` | MongoDB RSS feed URL | `https://www.mongodb.com/blog/rss.xml` |
+
+### 🏢 Publishing to Organization Pages
+
+LinkedIn uses **two-app architecture** for organization publishing:
+
+**App 1** (existing): OAuth login + personal posting  
+**App 2** (new): Organization publishing only
+
+#### Quick Setup:
+
+1. Create **new LinkedIn app** with **Community Management API** only
+2. Add credentials to `.env`:
+   ```env
+   # App 2 credentials
+   LINKEDIN_PUBLISH_CLIENT_ID=your_app2_client_id
+   LINKEDIN_PUBLISH_CLIENT_SECRET=your_app2_client_secret
+   LINKEDIN_COMPANY_ID=your_org_id
+   LINKEDIN_PUBLISH_AS_ORGANIZATION=true
+   ```
+3. Authorize App 2:
+   ```bash
+   curl http://localhost:3000/auth/linkedin/auth-org
+   ```
+
+📚 **Complete guide:** [AUTHORIZATION_REQUIRED.md](./AUTHORIZATION_REQUIRED.md)
+
+**Why two apps?** Community Management API must be the only product on an application (LinkedIn requirement).
+
 
 ### Posting Schedule Customization
 
@@ -126,8 +163,10 @@ TIMEZONE=America/New_York
 
 1. Navigate to the "Products" tab
 2. Request access to:
-   - **Share on LinkedIn** (for posting content)
    - **Sign In with LinkedIn using OpenID Connect** (for authentication)
+   - **Community Management API** (for posting to organization pages - optional)
+
+> 💡 **Note**: "Community Management API" is required only if you want to publish to a company/organization page. It provides the `w_organization_social` scope needed for organization posting.
 
 ### Step 4: Get Your Credentials
 
