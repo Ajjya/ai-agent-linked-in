@@ -209,18 +209,34 @@ class DatabaseService {
     refreshToken?: string;
     expiresAt: Date;
     scope?: string;
+    linkedInUserId?: string;
   }): Promise<any> {
-    // Delete existing tokens first
-    await this.prisma.linkedInToken.deleteMany({});
-    
-    return this.prisma.linkedInToken.create({
-      data: {
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken || null,
-        expiresAt: data.expiresAt,
-        scope: data.scope || null,
-      },
-    });
+    try {
+      console.log('🗑️  Deleting old tokens...');
+      // Delete existing tokens first
+      await this.prisma.linkedInToken.deleteMany({});
+      console.log('✅ Old tokens deleted');
+      
+      console.log('📝 Creating new token record...');
+      const result = await this.prisma.linkedInToken.create({
+        data: {
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken || null,
+          expiresAt: data.expiresAt,
+          scope: data.scope || null,
+          linkedInUserId: data.linkedInUserId || null,
+        },
+      });
+      
+      console.log('✅ Token record created with ID:', result.id);
+      if (data.linkedInUserId) {
+        console.log('✅ Stored LinkedIn User ID:', data.linkedInUserId);
+      }
+      return result;
+    } catch (error: any) {
+      console.error('❌ Error storing LinkedIn token:', error.message);
+      throw error;
+    }
   }
 
   async getValidLinkedInToken(): Promise<{
@@ -229,6 +245,7 @@ class DatabaseService {
     expiresAt: Date;
     scope: string | undefined;
   } | null> {
+    console.log('💾 getValidLinkedInToken: Querying database...');
     const token = await this.prisma.linkedInToken.findFirst({
       where: {
         expiresAt: {
@@ -241,9 +258,11 @@ class DatabaseService {
     });
 
     if (!token) {
+      console.log('💾 getValidLinkedInToken: No valid token found in database');
       return null;
     }
 
+    console.log('💾 getValidLinkedInToken: Found token, expires:', token.expiresAt);
     return {
       accessToken: token.accessToken,
       refreshToken: token.refreshToken ? token.refreshToken : undefined,
@@ -257,6 +276,7 @@ class DatabaseService {
     refreshToken: string | undefined;
     expiresAt: Date;
     scope: string | undefined;
+    linkedInUserId: string | undefined;
   } | null> {
     const token = await this.prisma.linkedInToken.findFirst({
       orderBy: {
@@ -273,6 +293,7 @@ class DatabaseService {
       refreshToken: token.refreshToken ? token.refreshToken : undefined,
       expiresAt: token.expiresAt,
       scope: token.scope ? token.scope : undefined,
+      linkedInUserId: token.linkedInUserId ? token.linkedInUserId : undefined,
     };
   }
 

@@ -79,15 +79,16 @@ model RssItem {
 }
 
 model LinkedInToken {
-  id           String   @id @default(cuid())
-  accessToken  String
-  refreshToken String?  // LinkedIn refresh token for automatic renewal
-  expiresAt    DateTime // When the access token expires
-  tokenType    String   @default("Bearer")
-  scope        String?  // Granted permissions
+  id             String   @id @default(cuid())
+  linkedInUserId String?  // User's LinkedIn ID (from 'sub' claim)
+  accessToken    String
+  refreshToken   String?  // LinkedIn refresh token for automatic renewal
+  expiresAt      DateTime // When the access token expires
+  tokenType      String   @default("Bearer")
+  scope          String?  // Granted permissions
   
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
   
   @@map("linkedin_tokens")
 }

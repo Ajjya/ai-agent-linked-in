@@ -10,7 +10,7 @@
     "url": "https://github.com/Ajjya/ai-agent-linked-in.git"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/views && cp src/views/*.html dist/views/",
     "dev": "nodemon src/index.ts",
     "start": "node dist/index.js",
     "start:dev": "ts-node src/index.ts",
@@ -21,7 +21,12 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "check:token": "node scripts/check-token.js",
+    "check:post": "node scripts/check-post.js",
+    "check:scheduled": "node scripts/check-scheduled.js",
+    "refresh:token": "node scripts/refresh-token.js",
+    "test:url": "node scripts/test-url.js"
   },
   "engines": {
     "node": ">=18.0.0"

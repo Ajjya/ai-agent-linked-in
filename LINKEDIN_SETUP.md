@@ -1,72 +1,74 @@
+````markdown
 # LinkedIn OAuth Setup Guide
 
-## Шаг 1: Создание LinkedIn App
+## Step 1: Create LinkedIn App
 
-1. Перейдите на [LinkedIn Developer Portal](https://www.linkedin.com/developers/)
-2. Нажмите "Create app"
-3. Заполните форму:
+1. Go to [LinkedIn Developer Portal](https://www.linkedin.com/developers/)
+2. Click "Create app"
+3. Fill out the form:
    - **App name**: MongoDB Content Agent
-   - **LinkedIn Page**: Выберите вашу компанию или создайте личную страницу
-   - **Privacy policy URL**: https://yourcompany.com/privacy (временно можно использовать https://mongodb.com/privacy)
-   - **App logo**: Загрузите логотип (необязательно)
+   - **LinkedIn Page**: Select your company or create a personal page
+   - **Privacy policy URL**: https://yourcompany.com/privacy (temporarily use https://mongodb.com/privacy)
+   - **App logo**: Upload a logo (optional)
 
-## Шаг 2: Настройка разрешений
+## Step 2: Configure Permissions
 
-1. В разделе **Products** добавьте:
+1. In the **Products** section add:
    - **Sign In with LinkedIn using OpenID Connect**
-   - **Share on LinkedIn** (требует верификации)
-   - **Marketing Developer Platform** (если доступно)
+   - **Share on LinkedIn** (requires verification)
+   - **Marketing Developer Platform** (if available)
 
-2. В разделе **Auth** настройте:
+2. In the **Auth** section configure:
    - **Authorized redirect URLs**: 
      ```
      http://localhost:3000/auth/linkedin/callback
      ```
 
-## Шаг 3: Получение учетных данных
+## Step 3: Get Credentials
 
-1. Перейдите во вкладку **Auth**
-2. Скопируйте:
+1. Go to the **Auth** tab
+2. Copy:
    - **Client ID**
    - **Client Secret**
 
-## Шаг 4: Обновление .env файла
+## Step 4: Update .env File
 
-Откройте файл `.env` и заполните:
+Open the `.env` file and fill in:
 
 ```env
-LINKEDIN_CLIENT_ID=ваш_client_id_здесь
-LINKEDIN_CLIENT_SECRET=ваш_client_secret_здесь
+LINKEDIN_CLIENT_ID=your_client_id_here
+LINKEDIN_CLIENT_SECRET=your_client_secret_here
 LINKEDIN_REDIRECT_URI=http://localhost:3000/auth/linkedin/callback
 ```
 
-## Шаг 5: Получение Access Token
+## Step 5: Get Access Token
 
-1. Перезапустите приложение после обновления .env
-2. Откройте http://localhost:3000/settings.html
-3. Нажмите "Authorize LinkedIn"
-4. Следуйте инструкциям OAuth процесса
-5. Access token будет автоматически сохранен
+1. Restart the application after updating .env
+2. Open http://localhost:3000/settings.html
+3. Click "Authorize LinkedIn"
+4. Follow the OAuth authorization process
+5. Access token will be automatically saved
 
-## Альтернативный способ получения токена
+## Alternative Token Retrieval Method
 
-Если кнопка на settings.html не работает, используйте прямой URL:
+If the button on settings.html doesn't work, use the direct URL:
 
-1. Получите authorization URL:
+1. Get the authorization URL:
    ```bash
    curl http://localhost:3000/auth/linkedin/auth
    ```
 
-2. Откройте полученный URL в браузере
-3. Авторизуйтесь в LinkedIn
-4. Вы будете перенаправлены обратно с access token
+2. Open the returned URL in your browser
+3. Authorize with LinkedIn
+4. You will be redirected back with the access token
 
-## Проверка подключения
+## Verify Connection
 
-После получения токена проверьте подключение:
+After obtaining the token, verify the connection:
 
 ```bash
 curl http://localhost:3000/api/system/status
 ```
 
-В ответе должно быть `linkedin: connected`.
+The response should show `linkedin: connected`.
+````

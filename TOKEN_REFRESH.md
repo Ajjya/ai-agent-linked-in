@@ -1,50 +1,51 @@
-# Автоматическое обновление токенов LinkedIn
+````markdown
+# Automatic LinkedIn Token Refresh
 
-## Обзор
+## Overview
 
-Система автоматического обновления токенов LinkedIn устраняет необходимость в ручном обновлении токенов доступа. Теперь приложение автоматически:
+The automatic token refresh system eliminates the need for manual access token updates. Now the application automatically:
 
-1. 🔄 **Обновляет токены** перед их истечением
-2. 💾 **Сохраняет токены** в базе данных безопасно
-3. ⏰ **Проверяет срок действия** каждые 30 минут
-4. 🤖 **Работает без участия пользователя**
+1. 🔄 **Refreshes tokens** before they expire
+2. 💾 **Stores tokens** safely in the database
+3. ⏰ **Checks expiration** every 30 minutes
+4. 🤖 **Works without user interaction**
 
-## Как это работает
+## How It Works
 
-### 1. OAuth Flow с автосохранением
-При авторизации через LinkedIn OAuth:
-- Access token и refresh token сохраняются в базе данных
-- Устанавливается время истечения токена
-- Пользователю больше не нужно копировать токены вручную
+### 1. OAuth Flow with Auto-Save
+When authorizing through LinkedIn OAuth:
+- Access token and refresh token are saved to the database
+- Token expiration time is set
+- Users no longer need to manually copy tokens
 
-### 2. Автоматическая проверка токенов
-Каждые 30 минут система:
-- Проверяет срок действия токена
-- Если токен истекает в течение 30 минут - автоматически обновляет его
-- Обновленный токен сохраняется в базе данных
+### 2. Automatic Token Checking
+Every 30 minutes the system:
+- Checks token expiration
+- If token expires within 30 minutes - automatically refreshes it
+- Updated token is saved to the database
 
-### 3. Инициализация при запуске
-При старте приложения:
-- Загружает действительный токен из базы данных
-- Инициализирует LinkedIn API с загруженным токеном
+### 3. Initialization on Startup
+When the application starts:
+- Loads a valid token from the database
+- Initializes the LinkedIn API with the loaded token
 
-## Использование
+## Usage
 
-### Первоначальная настройка
-1. Перейдите на `http://localhost:3000/auth/linkedin/auth`
-2. Получите URL авторизации и перейдите по нему
-3. Подтвердите доступ в LinkedIn
-4. Токены автоматически сохранятся в системе
+### Initial Setup
+1. Navigate to `http://localhost:3000/auth/linkedin/auth`
+2. Get the authorization URL and follow it
+3. Confirm access in LinkedIn
+4. Tokens are automatically saved to the system
 
-### После настройки
-- ✅ Никаких действий не требуется
-- ✅ Токены обновляются автоматически
-- ✅ Постинг работает без прерываний
+### After Setup
+- ✅ No actions required
+- ✅ Tokens refresh automatically
+- ✅ Posting works without interruptions
 
-## Технические детали
+## Technical Details
 
-### База данных
-Новая таблица `linkedin_tokens`:
+### Database
+New `linkedin_tokens` table:
 ```sql
 CREATE TABLE "linkedin_tokens" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -58,35 +59,36 @@ CREATE TABLE "linkedin_tokens" (
 );
 ```
 
-### Планировщик задач
-- **Периодичность**: каждые 30 минут
-- **Условие обновления**: если токен истекает в течение 30 минут
-- **Логирование**: все операции логируются в базу данных
+### Scheduler
+- **Frequency**: Every 30 minutes
+- **Refresh condition**: If token expires within 30 minutes
+- **Logging**: All operations are logged to the database
 
-### API методы
-- `linkedinService.initializeToken()` - загрузка токена при запуске
-- `linkedinService.checkAndRefreshToken()` - проверка и обновление
-- `linkedinService.refreshToken()` - принудительное обновление
+### API Methods
+- `linkedinService.initializeToken()` - Load token on startup
+- `linkedinService.checkAndRefreshToken()` - Check and refresh
+- `linkedinService.refreshToken()` - Force refresh
 
-## Преимущества
+## Benefits
 
-1. 🛡️ **Безопасность**: токены хранятся в зашифрованной базе данных
-2. 🤖 **Автоматизация**: полностью автономная работа
-3. ⚡ **Надежность**: предотвращает сбои из-за истекших токенов
-4. 📈 **Непрерывность**: постинг работает без прерываний
-5. 🔧 **Простота**: настройка один раз, работает всегда
+1. 🛡️ **Security**: Tokens stored in encrypted database
+2. 🤖 **Automation**: Completely autonomous operation
+3. ⚡ **Reliability**: Prevents failures due to expired tokens
+4. 📈 **Continuity**: Posting works without interruptions
+5. 🔧 **Simplicity**: Set up once, works forever
 
-## Мониторинг
+## Monitoring
 
-Логи автоматического обновления токенов доступны в:
-- Консоли приложения (при запуске)
-- Базе данных (таблица `publish_logs`)
-- Dashboard веб-панели
+Automatic token refresh logs are available in:
+- Application console (on startup)
+- Database (`publish_logs` table)
+- Web dashboard
 
-## Статусы токенов
+## Token Statuses
 
-- ✅ **Действительный**: токен активен, срок не истекает
-- 🔄 **Обновляется**: токен близок к истечению, происходит обновление
-- ❌ **Недействительный**: нужна повторная авторизация
+- ✅ **Valid**: Token is active, not expiring
+- 🔄 **Refreshing**: Token close to expiration, refresh in progress
+- ❌ **Invalid**: Re-authorization required
 
-Теперь вы можете забыть о ручном управлении токенами LinkedIn! 🚀
+Now you can forget about managing LinkedIn tokens manually! 🚀
+````

@@ -127,17 +127,18 @@ router.get('/rss/summary', async (req, res) => {
 // Test LinkedIn connection
 router.get('/linkedin/test', async (req, res) => {
   try {
+    console.log('📍 /linkedin/test endpoint called');
     const result = await linkedinService.testConnection();
     res.json({
       success: result.success,
       data: result.profile,
       error: result.error,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error testing LinkedIn connection:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to test LinkedIn connection',
+      error: error.message || 'Failed to test LinkedIn connection',
     });
   }
 });

@@ -117,7 +117,9 @@ class SchedulerService {
   }
 
   async processScheduledPosts(): Promise<void> {
+    console.log('📋 processScheduledPosts: Starting...');
     const scheduledPosts = await databaseService.getScheduledPosts();
+    console.log(`📋 processScheduledPosts: Found ${scheduledPosts.length} posts in database`);
     
     if (scheduledPosts.length === 0) {
       console.log('📭 No posts scheduled for publishing');
@@ -129,7 +131,9 @@ class SchedulerService {
     for (const post of scheduledPosts) {
       try {
         // Validate LinkedIn connection before posting
+        console.log(`🔍 Validating LinkedIn connection for post: ${post.title}`);
         const isConnected = await linkedinService.validateConnection();
+        console.log(`✅ Connection validation result: ${isConnected}`);
         if (!isConnected) {
           console.error('❌ LinkedIn connection invalid, skipping post publishing');
           await databaseService.createPublishLog({
@@ -199,7 +203,14 @@ class SchedulerService {
 
   async triggerPostPublishing(): Promise<void> {
     console.log('🔄 Manual post publishing triggered...');
-    await this.processScheduledPosts();
+    console.log('🔄 About to call processScheduledPosts()...');
+    try {
+      await this.processScheduledPosts();
+      console.log('🔄 processScheduledPosts() completed');
+    } catch (error) {
+      console.error('🔄 Error in processScheduledPosts():', error);
+      throw error;
+    }
   }
 
   async scheduleImmediate(postId: string): Promise<void> {
