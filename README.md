@@ -14,7 +14,8 @@ Automated LinkedIn posting agent that publishes MongoDB-related content to your 
 ## ✨ Features
 
 - **📡 Automatic RSS Parsing**: Fetches latest MongoDB blog posts and news
-- **📝 Smart Content Generation**: Creates engaging LinkedIn posts with proper formatting
+- **🤖 AI-Powered Content**: Uses ChatGPT to generate attractive, engaging LinkedIn posts with bold titles
+- **📝 Smart Content Generation**: Creates compelling descriptions without generic phrases or ellipsis
 - **⏰ Scheduled Publishing**: Configurable posting schedule (default: Tuesday & Friday, 10:30 AM Portugal time)
 - **🖼️ Image Support**: Automatically includes images from RSS feeds when available
 - **📊 Web Dashboard**: Simple web interface for managing posts and viewing schedules
@@ -90,6 +91,8 @@ Visit `http://localhost:3000` to access the web dashboard.
 | `LINKEDIN_CLIENT_ID` | LinkedIn App Client ID | - |
 | `LINKEDIN_CLIENT_SECRET` | LinkedIn App Client Secret | - |
 | `LINKEDIN_ACCESS_TOKEN` | LinkedIn OAuth Access Token | - |
+| `OPENAI_API_KEY` | OpenAI API Key for ChatGPT | - |
+| `OPENAI_MODEL` | ChatGPT Model (gpt-3.5-turbo, gpt-4) | `gpt-3.5-turbo` |
 | `POSTING_DAYS` | Posting days (0=Sun, 1=Mon, etc.) | `2,5` (Tue, Fri) |
 | `POSTING_TIME` | Posting time (HH:mm) | `10:30` |
 | `TIMEZONE` | Timezone for scheduling | `Europe/Lisbon` |
@@ -273,7 +276,41 @@ yarn db:studio      # Open Prisma Studio
 yarn lint           # Run ESLint
 yarn lint:fix       # Fix ESLint issues
 yarn format         # Format with Prettier
+
+# Testing & Utilities
+yarn check:token    # Check LinkedIn token status
+yarn check:post     # Check specific post details
+yarn check:scheduled # View scheduled posts
+yarn refresh:token  # Manually refresh LinkedIn token
+yarn test:ai-content # Test AI content generation with ChatGPT
 ```
+
+## 🤖 AI-Powered Content Generation
+
+This agent uses OpenAI's ChatGPT API to generate attractive, engaging LinkedIn posts:
+
+### Features
+- **Bold Titles**: Titles are formatted bold for better visibility
+- **Engaging Content**: ChatGPT creates compelling descriptions
+- **No Ellipsis**: Content avoids generic phrases and trailing dots
+- **Context-Aware**: Different prompts for announcements, tutorials, and case studies
+- **Fallback Support**: Falls back to templates if AI generation fails
+
+### Setup
+
+1. Get OpenAI API key from [platform.openai.com](https://platform.openai.com/api-keys)
+2. Add to `.env`:
+   ```bash
+   OPENAI_API_KEY=sk-your-key-here
+   OPENAI_MODEL=gpt-3.5-turbo
+   ```
+3. Test with: `yarn test:ai-content`
+
+### Cost Estimation
+- ~$0.0015 per post with gpt-3.5-turbo
+- 2 posts/week = ~$0.12/month
+
+For detailed AI content generation documentation, see [AI_CONTENT_GENERATION.md](./AI_CONTENT_GENERATION.md)
 
 ## 🔍 Monitoring & Logging
 

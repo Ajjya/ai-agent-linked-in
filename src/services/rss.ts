@@ -2,6 +2,7 @@ import Parser from 'rss-parser';
 import axios from 'axios';
 import config from '../config';
 import databaseService from './database';
+import aiContentService from './aiContent';
 
 interface RSSItem {
   guid: string;
@@ -131,13 +132,40 @@ class RSSContentService {
       return;
     }
 
-    const postContent = this.generatePostContent(item);
-    const imageUrl = this.extractImageUrl(item);
     const category = this.categorizePost(item);
+    const imageUrl = this.extractImageUrl(item);
+    
+    let title = item.title || 'MongoDB News';
+    let postContent: string;
 
     try {
+      // Try to use AI to generate attractive content
+      const aiConfigured = await aiContentService.isConfigured();
+      if (aiConfigured) {
+        console.log(`🤖 Using AI to generate attractive content...`);
+        const description = this.cleanDescription(item.contentSnippet || item.content || '');
+        
+        try {
+          const aiContent = await aiContentService.generateLinkedInContent({
+            title,
+            description,
+            link: item.link || '',
+            category
+          });
+          
+          title = aiContent.title;
+          postContent = aiContent.content;
+        } catch (aiError: any) {
+          console.warn(`⚠️ AI content generation failed, falling back to template: ${aiError.message}`);
+          postContent = this.generatePostContent(item);
+        }
+      } else {
+        console.log(`📝 Generating content from template (AI not configured)`);
+        postContent = this.generatePostContent(item);
+      }
+
       const postData: any = {
-        title: item.title || 'MongoDB News',
+        title,
         content: postContent,
         sourceUrl: item.link,
         sourceType: 'rss',
