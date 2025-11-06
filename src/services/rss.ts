@@ -142,10 +142,11 @@ class RSSContentService {
       // Try to use AI to generate attractive content
       const aiConfigured = await aiContentService.isConfigured();
       if (aiConfigured) {
-        console.log(`🤖 Using AI to generate attractive content...`);
+        console.log(`\n🤖 AI Content Generation for: ${item.title}`);
         const description = this.cleanDescription(item.contentSnippet || item.content || '');
         
         try {
+          console.log(`   ⏳ Calling ChatGPT (${category})...`);
           const aiContent = await aiContentService.generateLinkedInContent({
             title,
             description,
@@ -155,12 +156,16 @@ class RSSContentService {
           
           title = aiContent.title;
           postContent = aiContent.content;
+          console.log(`   ✅ AI Generated Title: ${title}`);
+          console.log(`   ✅ AI Generated Content (${postContent.length} chars)`);
         } catch (aiError: any) {
-          console.warn(`⚠️ AI content generation failed, falling back to template: ${aiError.message}`);
+          console.warn(`   ⚠️ AI generation failed: ${aiError.message}`);
+          console.log(`   📝 Falling back to template-based content...`);
           postContent = this.generatePostContent(item);
         }
       } else {
-        console.log(`📝 Generating content from template (AI not configured)`);
+        console.log(`\n📝 Generating content from template (AI not configured)`);
+        console.log(`   💡 Tip: Set OPENAI_API_KEY in .env to enable AI content generation`);
         postContent = this.generatePostContent(item);
       }
 
@@ -180,7 +185,13 @@ class RSSContentService {
 
       const post = await databaseService.createPost(postData);
 
-      console.log(`📅 Created scheduled post: ${post.title}`);
+      console.log(`\n📅 Post created and scheduled:`);
+      console.log(`   ID: ${post.id}`);
+      console.log(`   Title: ${post.title}`);
+      console.log(`   Status: ${post.status}`);
+      console.log(`   Scheduled: ${post.scheduledAt.toLocaleString()}`);
+      console.log(`   Content length: ${post.content.length} characters\n`);
+      
       await databaseService.markRssItemProcessed(guid);
     } catch (error) {
       console.error('❌ Error creating post from RSS item:', error);

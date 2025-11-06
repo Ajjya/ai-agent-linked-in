@@ -27,7 +27,8 @@
     "check:scheduled": "node scripts/check-scheduled.js",
     "refresh:token": "node scripts/refresh-token.js",
     "test:url": "node scripts/test-url.js",
-    "test:ai-content": "npm run build && node scripts/test-ai-content.js"
+    "test:ai-content": "npm run build && node scripts/test-ai-content.js",
+    "clean:posts": "node scripts/clean-posts.js"
   },
   "engines": {
     "node": ">=18.0.0"
